@@ -1,8 +1,13 @@
-package com.example.myapplication // パッケージ名をご自身のものに合わせてください
+package com.example.myapplication
 
+import android.Manifest // ★カメラの権限に必要
+import android.content.pm.PackageManager // ★カメラの権限に必要
 import android.os.Bundle
+import android.widget.Toast // ★メッセージ表示に必要
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult // ★カメラ起動に必要
+import androidx.activity.result.contract.ActivityResultContracts // ★カメラ起動に必要
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,16 +25,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat // ★カメラの権限に必要
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.myapplication.ui.theme.* // パッケージ名を合わせる
+import com.example.myapplication.ui.theme.*
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -51,8 +58,8 @@ class MainActivity : ComponentActivity() {
 // --- Navigation ---
 object Routes {
     const val DASHBOARD = "dashboard"
-    const val PATTERNS = "patterns"
-    const val PATTERN_VIEW = "pattern_view" // "counter"から変更
+    const val MY_PATTERNS = "my_patterns"
+    const val PATTERN_VIEW = "pattern_view"
     const val PATTERN_DETAIL = "pattern_detail"
 }
 
@@ -81,14 +88,16 @@ fun MainApp() {
         NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
             composable(Routes.DASHBOARD) {
                 DashboardScreen(
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    onPatternClick = { navController.navigate(Routes.PATTERN_DETAIL) }
+                    navController = navController,
+                    onMenuClick = { scope.launch { drawerState.open() } }
                 )
             }
-            composable(Routes.PATTERNS) {
-                // TODO: マイ編み図画面の実装
+            composable(Routes.MY_PATTERNS) {
+                MyPatternsScreen(
+                    onMenuClick = { scope.launch { drawerState.open() } }
+                )
             }
-            composable(Routes.PATTERN_VIEW) { // "counter"から変更
+            composable(Routes.PATTERN_VIEW) {
                 PatternViewScreen(onMenuClick = { scope.launch { drawerState.open() } })
             }
             composable(Routes.PATTERN_DETAIL) {
@@ -102,7 +111,31 @@ fun MainApp() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(onMenuClick: () -> Unit, onPatternClick: () -> Unit) {
+fun DashboardScreen(navController: NavController, onMenuClick: () -> Unit) {
+    val context = LocalContext.current
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview(),
+        onResult = { bitmap ->
+            if (bitmap != null) {
+                Toast.makeText(context, "写真が撮影されました", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "撮影がキャンセルされました", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                cameraLauncher.launch(null)
+            } else {
+                Toast.makeText(context, "カメラの権限が拒否されました", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -115,8 +148,20 @@ fun DashboardScreen(onMenuClick: () -> Unit, onPatternClick: () -> Unit) {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: 新規作成処理 */ }, containerColor = PrimaryTeal) {
-                Icon(Icons.Default.Add, contentDescription = "新規作成", tint = Color.White)
+            FloatingActionButton(
+                onClick = {
+                    when (PackageManager.PERMISSION_GRANTED) {
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) -> {
+                            cameraLauncher.launch(null)
+                        }
+                        else -> {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
+                },
+                containerColor = PrimaryTeal
+            ) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = "カメラを起動", tint = Color.White)
             }
         }
     ) { paddingValues ->
@@ -127,8 +172,43 @@ fun DashboardScreen(onMenuClick: () -> Unit, onPatternClick: () -> Unit) {
                     description = "最近の作業: 5段目を編み終えました",
                     icon = Icons.Default.Edit,
                     iconColor = PrimaryTeal,
-                    onClick = onPatternClick
+                    onClick = { navController.navigate(Routes.PATTERN_VIEW) }
                 )
+            }
+            item {
+                PatternListItem(
+                    title = "ハートのコースター",
+                    description = "完了！ - 2024/02/01",
+                    icon = Icons.Default.Check,
+                    iconColor = SecondarySalmon,
+                    onClick = { /* 詳細画面などへ */ }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyPatternsScreen(onMenuClick: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("マイ編み図") },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Default.Menu, contentDescription = "メニュー")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(modifier = Modifier.padding(paddingValues)) {
+            item {
+                PatternListItem(title = "保存した編み図A", description = "靴下", icon = Icons.Default.Bookmark, iconColor = PrimaryTeal) {}
+            }
+            item {
+                PatternListItem(title = "保存した編み図B", description = "帽子", icon = Icons.Default.Bookmark, iconColor = SecondarySalmon) {}
             }
         }
     }
@@ -168,57 +248,26 @@ fun PatternViewScreen(onMenuClick: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // タブ
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = BgBase,
-                contentColor = PrimaryTeal
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("表面") }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("裏面") }
-                )
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("表面") })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("裏面") })
             }
-
-            // 編み図チャート
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f) // 残りのスペースをすべて使用
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, BorderDefault, RoundedCornerShape(8.dp)),
+                modifier = Modifier.fillMaxWidth().weight(1f).background(Color.White, RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("ここに編み図チャートが表示されます", color = Color.Gray)
             }
-
-            // カウンターセクション
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, BorderDefault, RoundedCornerShape(8.dp))
-                    .padding(8.dp),
+                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)).padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CompactCounterRow("現在の段数", rowCount) { newCount -> rowCount = newCount }
                 Divider(color = BgBase, thickness = 1.dp)
                 CompactCounterRow("現在の目数", stitchCount) { newCount -> stitchCount = newCount }
             }
-
-            // モード切替とセンサー接続
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, BorderDefault, RoundedCornerShape(8.dp))
-                    .padding(8.dp),
+                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)).padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -235,10 +284,7 @@ fun PatternViewScreen(onMenuClick: () -> Unit) {
                     Switch(
                         checked = sensorConnected,
                         onCheckedChange = { sensorConnected = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = PrimaryTeal,
-                            checkedTrackColor = PrimaryTeal.copy(alpha = 0.5f)
-                        )
+                        colors = SwitchDefaults.colors(checkedThumbColor = PrimaryTeal)
                     )
                 }
             }
@@ -268,63 +314,34 @@ fun PatternDetailScreen(onBackClick: () -> Unit) {
 }
 
 
-// --- Reusable Components ---
-
 @Composable
 fun AppDrawer(onDestinationClicked: (String) -> Unit) {
     ModalDrawerSheet {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "あみナビ",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = SecondarySalmon,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Text(text = "あみナビ", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = SecondarySalmon, modifier = Modifier.padding(bottom = 16.dp))
             DrawerItem(label = "ダッシュボード", icon = Icons.Default.Dashboard, route = Routes.DASHBOARD, onClick = onDestinationClicked)
-            DrawerItem(label = "マイ編み図", icon = Icons.Default.Book, route = Routes.PATTERNS, onClick = onDestinationClicked)
-            DrawerItem(label = "編み図ビュー", icon = Icons.Default.Calculate, route = Routes.PATTERN_VIEW, onClick = onDestinationClicked) // ラベルとルートを変更
+            DrawerItem(label = "マイ編み図", icon = Icons.Default.Book, route = Routes.MY_PATTERNS, onClick = onDestinationClicked)
+            DrawerItem(label = "編み図ビュー", icon = Icons.Default.GridView, route = Routes.PATTERN_VIEW, onClick = onDestinationClicked)
         }
     }
 }
 
 @Composable
 fun DrawerItem(label: String, icon: ImageVector, route: String, onClick: (String) -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick(route) }
-            .padding(vertical = 12.dp)
-    ) {
-        Icon(icon, contentDescription = label, tint = Color.Gray)
-        Spacer(Modifier.width(16.dp))
-        Text(label)
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { onClick(route) }.padding(vertical = 12.dp)) {
+        Icon(icon, contentDescription = label, tint = Color.Gray); Spacer(Modifier.width(16.dp)); Text(label)
     }
 }
 
 @Composable
 fun PatternListItem(title: String, description: String, icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(iconColor.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(iconColor.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
             Icon(imageVector = icon, contentDescription = title, tint = iconColor)
         }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold)
-            Text(text = description, fontSize = 14.sp, color = Color.Gray)
+            Text(text = title, fontWeight = FontWeight.Bold); Text(text = description, fontSize = 14.sp, color = Color.Gray)
         }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
     }
@@ -332,13 +349,7 @@ fun PatternListItem(title: String, description: String, icon: ImageVector, iconC
 
 @Composable
 fun CompactCounterRow(label: String, value: Int, onValueChange: (Int) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             CompactCounterButton(text = "-") { if (value > 0) onValueChange(value - 1) }
@@ -350,18 +361,11 @@ fun CompactCounterRow(label: String, value: Int, onValueChange: (Int) -> Unit) {
 
 @Composable
 fun CompactCounterButton(text: String, onClick: () -> Unit) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(32.dp)
-            .border(1.dp, BorderDefault, CircleShape),
-    ) {
+    IconButton(onClick = onClick, modifier = Modifier.size(32.dp).border(1.dp, BorderDefault, CircleShape)) {
         Text(text, fontSize = 20.sp, color = Color.DarkGray, fontWeight = FontWeight.Light)
     }
 }
 
-
-// --- Preview ---
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
