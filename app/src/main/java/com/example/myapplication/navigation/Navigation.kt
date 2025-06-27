@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.myapplication.AppDrawer
-import com.example.myapplication.PatternDetailScreen
 import com.example.myapplication.Routes
 import com.example.myapplication.ui.screens.DashboardScreen
 import com.example.myapplication.ui.screens.MyPatternsScreen
+import com.example.myapplication.ui.screens.PatternDetailScreen
 import com.example.myapplication.ui.screens.PatternViewScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

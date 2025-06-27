@@ -71,30 +71,6 @@ fun MainApp() {
     AppNavigation(navController, drawerState, scope)
 }
 
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PatternDetailScreen(onBackClick: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("シンプルなマフラー") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
-            Text("編み図詳細画面のコンテンツ")
-        }
-    }
-}
-
-
 @Composable
 fun AppDrawer(onDestinationClicked: (String) -> Unit) {
     ModalDrawerSheet {
