@@ -33,11 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat // ★カメラの権限に必要
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.myapplication.navigation.AppNavigation
 import com.example.myapplication.ui.theme.*
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,41 +68,7 @@ fun MainApp() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            AppDrawer(
-                onDestinationClicked = { route ->
-                    scope.launch {
-                        drawerState.close()
-                    }
-                    navController.navigate(route) {
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-    ) {
-        NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
-            composable(Routes.DASHBOARD) {
-                DashboardScreen(
-                    navController = navController,
-                    onMenuClick = { scope.launch { drawerState.open() } }
-                )
-            }
-            composable(Routes.MY_PATTERNS) {
-                MyPatternsScreen(
-                    onMenuClick = { scope.launch { drawerState.open() } }
-                )
-            }
-            composable(Routes.PATTERN_VIEW) {
-                PatternViewScreen(onMenuClick = { scope.launch { drawerState.open() } })
-            }
-            composable(Routes.PATTERN_DETAIL) {
-                PatternDetailScreen(onBackClick = { navController.popBackStack() })
-            }
-        }
-    }
+    AppNavigation(navController, drawerState, scope)
 }
 
 // --- Screens ---
