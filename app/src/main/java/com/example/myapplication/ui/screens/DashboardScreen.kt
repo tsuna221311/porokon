@@ -26,7 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.myapplication.PatternListItem
-import com.example.myapplication.Routes
+import com.example.myapplication.navigation.Routes
 import com.example.myapplication.ui.theme.PrimaryTeal
 import com.example.myapplication.ui.theme.SecondarySalmon
 

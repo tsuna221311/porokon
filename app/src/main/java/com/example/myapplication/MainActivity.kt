@@ -53,14 +53,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// --- Navigation ---
-object Routes {
-    const val DASHBOARD = "dashboard"
-    const val MY_PATTERNS = "my_patterns"
-    const val PATTERN_VIEW = "pattern_view"
-    const val PATTERN_DETAIL = "pattern_detail"
-}
-
 // --- Main App Structure ---
 @Composable
 fun MainApp() {
@@ -71,24 +63,6 @@ fun MainApp() {
     AppNavigation(navController, drawerState, scope)
 }
 
-@Composable
-fun AppDrawer(onDestinationClicked: (String) -> Unit) {
-    ModalDrawerSheet {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "あみナビ", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = SecondarySalmon, modifier = Modifier.padding(bottom = 16.dp))
-            DrawerItem(label = "ダッシュボード", icon = Icons.Default.Dashboard, route = Routes.DASHBOARD, onClick = onDestinationClicked)
-            DrawerItem(label = "マイ編み図", icon = Icons.Default.Book, route = Routes.MY_PATTERNS, onClick = onDestinationClicked)
-            DrawerItem(label = "編み図ビュー", icon = Icons.Default.GridView, route = Routes.PATTERN_VIEW, onClick = onDestinationClicked)
-        }
-    }
-}
-
-@Composable
-fun DrawerItem(label: String, icon: ImageVector, route: String, onClick: (String) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { onClick(route) }.padding(vertical = 12.dp)) {
-        Icon(icon, contentDescription = label, tint = Color.Gray); Spacer(Modifier.width(16.dp)); Text(label)
-    }
-}
 
 @Composable
 fun PatternListItem(title: String, description: String, icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
