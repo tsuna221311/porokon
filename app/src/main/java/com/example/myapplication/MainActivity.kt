@@ -63,21 +63,6 @@ fun MainApp() {
     AppNavigation(navController, drawerState, scope)
 }
 
-
-@Composable
-fun PatternListItem(title: String, description: String, icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(iconColor.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = title, tint = iconColor)
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold); Text(text = description, fontSize = 14.sp, color = Color.Gray)
-        }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
-    }
-}
-
 @Composable
 fun CompactCounterRow(label: String, value: Int, onValueChange: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
