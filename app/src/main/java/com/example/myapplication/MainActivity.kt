@@ -71,35 +71,6 @@ fun MainApp() {
     AppNavigation(navController, drawerState, scope)
 }
 
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MyPatternsScreen(onMenuClick: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("マイ編み図") },
-                navigationIcon = {
-                    IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = "メニュー")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            item {
-                PatternListItem(title = "保存した編み図A", description = "靴下", icon = Icons.Default.Bookmark, iconColor = PrimaryTeal) {}
-            }
-            item {
-                PatternListItem(title = "保存した編み図B", description = "帽子", icon = Icons.Default.Bookmark, iconColor = SecondarySalmon) {}
-            }
-        }
-    }
-}
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternViewScreen(onMenuClick: () -> Unit) {
