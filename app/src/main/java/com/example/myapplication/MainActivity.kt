@@ -35,6 +35,7 @@ import androidx.core.content.ContextCompat // ★カメラの権限に必要
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.navigation.AppNavigation
+import com.example.myapplication.ui.screens.PatternViewScreen
 import com.example.myapplication.ui.theme.*
 
 class MainActivity : ComponentActivity() {
@@ -53,15 +54,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// --- Navigation ---
-object Routes {
-    const val DASHBOARD = "dashboard"
-    const val MY_PATTERNS = "my_patterns"
-    const val PATTERN_VIEW = "pattern_view"
-    const val PATTERN_DETAIL = "pattern_detail"
-}
-
-// --- Main App Structure ---
 @Composable
 fun MainApp() {
     val navController = rememberNavController()
@@ -69,58 +61,6 @@ fun MainApp() {
     val scope = rememberCoroutineScope()
 
     AppNavigation(navController, drawerState, scope)
-}
-
-@Composable
-fun AppDrawer(onDestinationClicked: (String) -> Unit) {
-    ModalDrawerSheet {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "あみナビ", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = SecondarySalmon, modifier = Modifier.padding(bottom = 16.dp))
-            DrawerItem(label = "ダッシュボード", icon = Icons.Default.Dashboard, route = Routes.DASHBOARD, onClick = onDestinationClicked)
-            DrawerItem(label = "マイ編み図", icon = Icons.Default.Book, route = Routes.MY_PATTERNS, onClick = onDestinationClicked)
-            DrawerItem(label = "編み図ビュー", icon = Icons.Default.GridView, route = Routes.PATTERN_VIEW, onClick = onDestinationClicked)
-        }
-    }
-}
-
-@Composable
-fun DrawerItem(label: String, icon: ImageVector, route: String, onClick: (String) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { onClick(route) }.padding(vertical = 12.dp)) {
-        Icon(icon, contentDescription = label, tint = Color.Gray); Spacer(Modifier.width(16.dp)); Text(label)
-    }
-}
-
-@Composable
-fun PatternListItem(title: String, description: String, icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(iconColor.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = title, tint = iconColor)
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold); Text(text = description, fontSize = 14.sp, color = Color.Gray)
-        }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
-    }
-}
-
-@Composable
-fun CompactCounterRow(label: String, value: Int, onValueChange: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CompactCounterButton(text = "-") { if (value > 0) onValueChange(value - 1) }
-            Text("$value", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PrimaryTeal, modifier = Modifier.width(24.dp), textAlign = TextAlign.Center)
-            CompactCounterButton(text = "+") { onValueChange(value + 1) }
-        }
-    }
-}
-
-@Composable
-fun CompactCounterButton(text: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(32.dp).border(1.dp, BorderDefault, CircleShape)) {
-        Text(text, fontSize = 20.sp, color = Color.DarkGray, fontWeight = FontWeight.Light)
-    }
 }
 
 @Preview(showBackground = true)

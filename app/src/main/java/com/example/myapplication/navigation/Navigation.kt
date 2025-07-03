@@ -3,12 +3,10 @@ package com.example.myapplication.navigation
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
-import com.example.myapplication.AppDrawer
-import com.example.myapplication.Routes
+import com.example.myapplication.ui.components.drawer.AppDrawer
 import com.example.myapplication.ui.screens.DashboardScreen
 import com.example.myapplication.ui.screens.MyPatternsScreen
 import com.example.myapplication.ui.screens.PatternDetailScreen
