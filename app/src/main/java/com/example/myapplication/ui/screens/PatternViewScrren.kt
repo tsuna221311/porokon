@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.CompactCounterRow
+import com.example.myapplication.ui.components.counter.CompactCounterRow
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
 

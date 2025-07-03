@@ -35,6 +35,7 @@ import androidx.core.content.ContextCompat // ★カメラの権限に必要
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.navigation.AppNavigation
+import com.example.myapplication.ui.screens.PatternViewScreen
 import com.example.myapplication.ui.theme.*
 
 class MainActivity : ComponentActivity() {
@@ -53,7 +54,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// --- Main App Structure ---
 @Composable
 fun MainApp() {
     val navController = rememberNavController()
@@ -61,25 +61,6 @@ fun MainApp() {
     val scope = rememberCoroutineScope()
 
     AppNavigation(navController, drawerState, scope)
-}
-
-@Composable
-fun CompactCounterRow(label: String, value: Int, onValueChange: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CompactCounterButton(text = "-") { if (value > 0) onValueChange(value - 1) }
-            Text("$value", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PrimaryTeal, modifier = Modifier.width(24.dp), textAlign = TextAlign.Center)
-            CompactCounterButton(text = "+") { onValueChange(value + 1) }
-        }
-    }
-}
-
-@Composable
-fun CompactCounterButton(text: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(32.dp).border(1.dp, BorderDefault, CircleShape)) {
-        Text(text, fontSize = 20.sp, color = Color.DarkGray, fontWeight = FontWeight.Light)
-    }
 }
 
 @Preview(showBackground = true)
