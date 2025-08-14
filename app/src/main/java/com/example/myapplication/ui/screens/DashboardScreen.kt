@@ -5,7 +5,15 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -20,19 +28,58 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.navigation.Routes
 import com.example.myapplication.ui.components.common.PatternListItem
+import com.example.myapplication.ui.theme.AmuNaviTheme
 import com.example.myapplication.ui.theme.PrimaryTeal
 import com.example.myapplication.ui.theme.SecondarySalmon
 
 @OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun DashboardScreen(navController: NavController, onMenuClick: () -> Unit) {
+fun DashboardScreen(
+    dashboardUiState: DashboardUiState,
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    onMenuClick: () -> Unit
+) {
+    when (dashboardUiState) {
+        is DashboardUiState.Loading -> LoadingScreen(modifier = modifier.fillMaxSize())
+        is DashboardUiState.Success -> ResultScreen(navController,onMenuClick)
+        is DashboardUiState.Error -> ErrorScreen(modifier = modifier.fillMaxSize())
+    }
+}
+
+@Composable
+fun LoadingScreen(modifier: Modifier = Modifier) {
+    Text(text = "ローディング中", modifier = Modifier.padding(16.dp))
+}
+
+@Composable
+fun ErrorScreen(modifier: Modifier = Modifier) {
+    Column (
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
+        Text(text = "エラーです", modifier = Modifier.padding(16.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResultScreen(navController: NavController, onMenuClick: () -> Unit) {
     val context = LocalContext.current
 
     val cameraLauncher = rememberLauncherForActivityResult(
