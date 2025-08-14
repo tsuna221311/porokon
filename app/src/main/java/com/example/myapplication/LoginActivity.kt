@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.network.ApiClient
 import com.example.myapplication.ui.theme.AmuNaviTheme
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
@@ -44,6 +46,11 @@ class LoginActivity : ComponentActivity() {
                             is LoginState.Success -> {
                                 // 画面遷移
                                 LaunchedEffect(Unit) {
+                                    try {
+                                        ApiClient.service.registerUser()
+                                    } catch (e: Exception) {
+                                        Log.e("LoginActivity", "error", e)
+                                    }
                                     val intent = Intent(this@LoginActivity, MainActivity::class.java)
                                     startActivity(intent)
                                     finish() // LoginActivity を閉じる
