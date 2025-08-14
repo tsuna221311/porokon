@@ -1,27 +1,40 @@
 package com.example.myapplication.network
 
-import com.example.myapplication.R
 import com.google.firebase.auth.FirebaseAuth
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import com.google.android.gms.tasks.Tasks
+import java.util.concurrent.TimeUnit
 
 val baseUrl = "http://10.0.2.2:8080/"
 
-class UidInterceptor : Interceptor {
+class AuthInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+        val user = FirebaseAuth.getInstance().currentUser
+        var token: String? = null
+
+        if (user != null) {
+            val task = user.getIdToken(false) // false = キャッシュ使う
+            token = Tasks.await(task, 5, TimeUnit.SECONDS).token
+        }
+
         val request = chain.request().newBuilder()
-            .addHeader("uid", uid)
+            .apply {
+                if (!token.isNullOrBlank()) {
+                    addHeader("Authorization", "Bearer $token")
+                }
+            }
             .build()
+
         return chain.proceed(request)
     }
 }
 
 private val okHttpClient = OkHttpClient.Builder()
-    .addInterceptor(UidInterceptor())
+    .addInterceptor(AuthInterceptor())
     .build()
 
 private val retrofit = Retrofit.Builder()
