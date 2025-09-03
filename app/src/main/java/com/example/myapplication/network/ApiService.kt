@@ -1,6 +1,8 @@
 package com.example.myapplication.network
 
+import com.example.myapplication.model.ChangeDisplayNameRequest
 import com.example.myapplication.model.IncrementStitchRequest
+import com.example.myapplication.model.User
 import com.example.myapplication.model.Work
 import retrofit2.Response
 import retrofit2.http.Body
@@ -11,14 +13,21 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ApiService {
+    @POST("v1/users")
+    suspend fun registerUser(): Response<Unit>
+
+    @PATCH("v1/users")
+    suspend fun changeDisplayName(
+        @Body request: ChangeDisplayNameRequest
+    ): Response<User>
+
     @GET("v1/works")
     suspend fun getAllWorks(): Response<List<Work>>
+
     @GET("v1/works")
     suspend fun getOneWork(
         @Path("id") id: Int
     ): Response<Work>
-    @POST("v1/users")
-    suspend fun registerUser(): Response<Unit>
 
     @PATCH("v1/works/{id}")
     suspend fun incrementStitch(
