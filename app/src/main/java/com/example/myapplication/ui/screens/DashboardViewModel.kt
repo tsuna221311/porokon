@@ -6,13 +6,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.model.Work
 import com.example.myapplication.network.ApiClient
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 
 sealed interface DashboardUiState {
-    data class Success(val works: String) : DashboardUiState
+    data class Success(val works: List<Work>?) : DashboardUiState
     object Error : DashboardUiState
     object Loading : DashboardUiState
 }
@@ -28,14 +29,12 @@ class DashboardViewModel : ViewModel() {
     fun getWorks() {
         viewModelScope.launch {
             try {
-                val listResult = ApiClient.service.getWorks()
-                dashboardUiState = DashboardUiState.Success(
-                    "Success: ${listResult.size} works retrieved"
-                )
+                val result = ApiClient.service.getAllWorks()
+                dashboardUiState = DashboardUiState.Success(result.body())
             } catch (e: IOException) {
                 dashboardUiState = DashboardUiState.Error
                 Log.e("DashboardViewModel", "Network error", e)
-            }catch (e: HttpException) {
+            } catch (e: HttpException) {
                 if (e.code() == 401) {
                     dashboardUiState = DashboardUiState.Error
                     Log.e("DashboardViewModel", "Unauthorized: Authentication required", e)
