@@ -35,6 +35,7 @@ class DashboardViewModel : ViewModel() {
                 dashboardUiState = DashboardUiState.Error
                 Log.e("DashboardViewModel", "Network error", e)
             } catch (e: HttpException) {
+
                 if (e.code() == 401) {
                     dashboardUiState = DashboardUiState.Error
                     Log.e("DashboardViewModel", "Unauthorized: Authentication required", e)

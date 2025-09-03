@@ -13,7 +13,6 @@ interface ApiService {
     suspend fun getOneWork(
         @Path("id") id: Int
     ): Response<Work>
-
     @POST("v1/users")
     suspend fun registerUser(): Response<Unit>
 

@@ -58,6 +58,7 @@ fun DashboardScreen(
     when (dashboardUiState) {
         is DashboardUiState.Loading -> LoadingScreen(modifier = modifier.fillMaxSize())
         is DashboardUiState.Success -> ResultScreen(navController,onMenuClick, dashboardUiState.works)
+
         is DashboardUiState.Error -> ErrorScreen(modifier = modifier.fillMaxSize())
     }
 }
@@ -85,6 +86,7 @@ fun ResultScreen(
     onMenuClick: () -> Unit,
     works: List<Work>?
 ) {
+
     val context = LocalContext.current
 
     val cameraLauncher = rememberLauncherForActivityResult(
