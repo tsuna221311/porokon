@@ -13,25 +13,27 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ApiService {
+    @POST("v1/users")
+    suspend fun registerUser(): Response<Unit>
+
+    @PATCH("v1/users")
+    suspend fun changeDisplayName(
+        @Body request: ChangeDisplayNameRequest
+    ): Response<User>
+
     @GET("v1/works")
     suspend fun getAllWorks(): Response<List<Work>>
+
     @GET("v1/works")
     suspend fun getOneWork(
         @Path("id") id: Int
     ): Response<Work>
-    @POST("v1/users")
-    suspend fun registerUser(): Response<Unit>
 
     @PATCH("v1/works/{id}")
     suspend fun incrementStitch(
         @Path("id") id: Int,
         @Body request: IncrementStitchRequest
     ): Response<Work>
-
-    @PATCH("v1/users")
-    suspend fun changeDisplayName(
-        @Body request: ChangeDisplayNameRequest
-    ): Response<User>
 
     @DELETE("v1/works/{id}")
     suspend fun deleteWork(
