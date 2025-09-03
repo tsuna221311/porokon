@@ -1,6 +1,8 @@
 package com.example.myapplication.network
 
+import com.example.myapplication.model.ChangeDisplayNameRequest
 import com.example.myapplication.model.IncrementStitchRequest
+import com.example.myapplication.model.User
 import com.example.myapplication.model.Work
 import retrofit2.Response
 import retrofit2.http.Body
@@ -25,6 +27,11 @@ interface ApiService {
         @Path("id") id: Int,
         @Body request: IncrementStitchRequest
     ): Response<Work>
+
+    @PATCH("v1/users")
+    suspend fun changeDisplayName(
+        @Body request: ChangeDisplayNameRequest
+    ): Response<User>
 
     @DELETE("v1/works/{id}")
     suspend fun deleteWork(
