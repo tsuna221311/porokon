@@ -3,11 +3,14 @@ package com.example.myapplication.navigation
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.myapplication.ui.components.drawer.AppDrawer
 import com.example.myapplication.ui.screens.DashboardScreen
+import com.example.myapplication.ui.screens.DashboardUiState
+import com.example.myapplication.ui.screens.DashboardViewModel
 import com.example.myapplication.ui.screens.MyPatternsScreen
 import com.example.myapplication.ui.screens.PatternDetailScreen
 import com.example.myapplication.ui.screens.PatternViewScreen
@@ -44,9 +47,11 @@ fun AppNavigation(
     ) {
         NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
             composable(Routes.DASHBOARD) {
+                val dashboardViewModel :DashboardViewModel = viewModel()
                 DashboardScreen(
+                    dashboardUiState = dashboardViewModel.dashboardUiState,
                     navController = navController,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
                 )
             }
             composable(Routes.MY_PATTERNS) {

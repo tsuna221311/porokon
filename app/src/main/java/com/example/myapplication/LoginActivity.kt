@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.network.ApiClient
 import com.example.myapplication.ui.theme.AmuNaviTheme
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
@@ -25,7 +27,7 @@ class LoginActivity : ComponentActivity() {
     ) { result ->
         val user = FirebaseAuth.getInstance().currentUser
         loginState.value = if (result.resultCode == RESULT_OK && user != null) {
-            LoginState.Success(user.uid)
+            LoginState.ApiLoading(user.uid)
         } else {
             LoginState.Failure("ログイン失敗")
         }
@@ -39,16 +41,30 @@ class LoginActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
                         when (val state = loginState.value) {
+
                             is LoginState.Checking -> Text("ログイン状態を確認中...", fontSize = 20.sp)
 
-                            is LoginState.Success -> {
-                                // 画面遷移
-                                LaunchedEffect(Unit) {
-                                    val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                    startActivity(intent)
-                                    finish() // LoginActivity を閉じる
+                            is LoginState.ApiLoading -> {
+                                LaunchedEffect(state.uid) {
+                                    try {
+                                        val response = ApiClient.service.registerUser()
+                                        if (!response.isSuccessful) {
+                                            loginState.value =
+                                                LoginState.Failure("ユーザー登録に失敗: ${response.code()}")
+                                            return@LaunchedEffect
+                                        }
+                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                                        startActivity(intent)
+                                        finish()
+
+                                    } catch (e: Exception) {
+                                        loginState.value =
+                                            LoginState.Failure("エラー: ${e.message}")
+                                        Log.e("LoginActivity", "registerUser error", e)
+                                    }
                                 }
-                                Text("ログイン成功！UID: ${state.uid}", fontSize = 20.sp)
+
+                                Text("…ユーザー検証中…", fontSize = 20.sp)
                             }
 
                             is LoginState.Failure -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -59,7 +75,6 @@ class LoginActivity : ComponentActivity() {
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -68,7 +83,7 @@ class LoginActivity : ComponentActivity() {
         // 起動時にログイン状態を確認
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
-            loginState.value = LoginState.Success(user.uid)
+            loginState.value = LoginState.ApiLoading(user.uid)
         } else {
             launchSignIn()
         }
@@ -86,9 +101,10 @@ class LoginActivity : ComponentActivity() {
         signInLauncher.launch(signInIntent)
     }
 
+    // LoginState を整理
     sealed class LoginState {
-        object Checking : LoginState()
-        data class Success(val uid: String) : LoginState()
-        data class Failure(val reason: String) : LoginState()
+        object Checking : LoginState()                   // 起動時チェック
+        data class ApiLoading(val uid: String) : LoginState()  // API 呼び出し中
+        data class Failure(val reason: String) : LoginState()   // ログイン失敗または API 失敗
     }
 }
