@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.model.Work
 import com.example.myapplication.navigation.Routes
 import com.example.myapplication.ui.components.common.PatternListItem
 import com.example.myapplication.ui.theme.AmuNaviTheme
@@ -56,7 +57,8 @@ fun DashboardScreen(
 ) {
     when (dashboardUiState) {
         is DashboardUiState.Loading -> LoadingScreen(modifier = modifier.fillMaxSize())
-        is DashboardUiState.Success -> ResultScreen(navController,onMenuClick)
+        is DashboardUiState.Success -> ResultScreen(navController,onMenuClick, dashboardUiState.works)
+
         is DashboardUiState.Error -> ErrorScreen(modifier = modifier.fillMaxSize())
     }
 }
@@ -79,7 +81,12 @@ fun ErrorScreen(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResultScreen(navController: NavController, onMenuClick: () -> Unit) {
+fun ResultScreen(
+    navController: NavController,
+    onMenuClick: () -> Unit,
+    works: List<Work>?
+) {
+
     val context = LocalContext.current
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -107,7 +114,8 @@ fun ResultScreen(navController: NavController, onMenuClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ダッシュボード") },
+//                title = { Text("ダッシュボード") },
+                title = { Text("${works?.size ?: 0}件の作品を取得") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = "メニュー")
