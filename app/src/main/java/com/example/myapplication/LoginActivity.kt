@@ -2,34 +2,30 @@ package com.example.myapplication
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.myapplication.network.ApiClient
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.myapplication.ui.LoginScreen
 import com.example.myapplication.ui.theme.AmuNaviTheme
+import com.example.myapplication.viewmodel.LoginViewModel
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
 import com.google.firebase.auth.FirebaseAuth
 
 class LoginActivity : ComponentActivity() {
 
-    private val loginState = mutableStateOf<LoginState>(LoginState.Checking)
+    private val viewModel: LoginViewModel by viewModels()
 
     private val signInLauncher = registerForActivityResult(
         FirebaseAuthUIActivityResultContract()
     ) { result ->
         val user = FirebaseAuth.getInstance().currentUser
-        loginState.value = if (result.resultCode == RESULT_OK && user != null) {
-            LoginState.ApiLoading(user.uid)
+        if (result.resultCode == RESULT_OK && user != null) {
+            viewModel.registerUser(user.uid)
         } else {
-            LoginState.Failure("ログイン失敗")
+            viewModel.checkLoginState() // ログイン失敗時も状態 // 更新
         }
     }
 
@@ -38,58 +34,25 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             AmuNaviTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
-                        when (val state = loginState.value) {
+                val state by viewModel.loginState.collectAsState()
 
-                            is LoginState.Checking -> Text("ログイン状態を確認中...", fontSize = 20.sp)
-
-                            is LoginState.ApiLoading -> {
-                                LaunchedEffect(state.uid) {
-                                    try {
-                                        val response = ApiClient.service.registerUser()
-                                        if (!response.isSuccessful) {
-                                            loginState.value =
-                                                LoginState.Failure("ユーザー登録に失敗: ${response.code()}")
-                                            return@LaunchedEffect
-                                        }
-                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                        startActivity(intent)
-                                        finish()
-
-                                    } catch (e: Exception) {
-                                        loginState.value =
-                                            LoginState.Failure("エラー: ${e.message}")
-                                        Log.e("LoginActivity", "registerUser error", e)
-                                    }
-                                }
-
-                                Text("…ユーザー検証中…", fontSize = 20.sp)
-                            }
-
-                            is LoginState.Failure -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("ログイン失敗：${state.reason}", fontSize = 20.sp)
-                                Spacer(Modifier.height(16.dp))
-                                Button(onClick = { launchSignIn() }) {
-                                    Text("再試行")
-                                }
-                            }
-                        }
-                    }
+                if (state is LoginViewModel.LoginState.Success) {
+                    val intent = Intent(this, MainActivity::class.java)
+                    startActivity(intent)
+                    finish()
                 }
+
+                LoginScreen(
+                    state = state,
+                    onRetry = { showSignInScreen() }
+                )
             }
         }
 
-        // 起動時にログイン状態を確認
-        val user = FirebaseAuth.getInstance().currentUser
-        if (user != null) {
-            loginState.value = LoginState.ApiLoading(user.uid)
-        } else {
-            launchSignIn()
-        }
+        viewModel.checkLoginState()
     }
 
-    private fun launchSignIn() {
+    private fun showSignInScreen() {
         val providers = listOf(
             AuthUI.IdpConfig.EmailBuilder().build(),
             AuthUI.IdpConfig.GoogleBuilder().build()
@@ -99,12 +62,5 @@ class LoginActivity : ComponentActivity() {
             .setAvailableProviders(providers)
             .build()
         signInLauncher.launch(signInIntent)
-    }
-
-    // LoginState を整理
-    sealed class LoginState {
-        object Checking : LoginState()                   // 起動時チェック
-        data class ApiLoading(val uid: String) : LoginState()  // API 呼び出し中
-        data class Failure(val reason: String) : LoginState()   // ログイン失敗または API 失敗
     }
 }
