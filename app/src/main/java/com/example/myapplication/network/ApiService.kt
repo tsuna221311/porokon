@@ -24,7 +24,7 @@ interface ApiService {
     suspend fun incrementStitch(
         @Path("id") id: Int,
         @Body request: IncrementStitchRequest
-    ): List<Work>
+    ): Response<Work>
 
     @DELETE("v1/works/{id}")
     suspend fun deleteWork(
