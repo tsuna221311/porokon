@@ -1,50 +1,70 @@
 package com.example.myapplication.ui.screens
 
-import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.Work
-import com.example.myapplication.network.ApiClient
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
+import kotlinx.coroutines.delay
+import java.time.Instant
 
+// --- UIの状態をここで一元管理 ---
 sealed interface DashboardUiState {
-    data class Success(val works: List<Work>?) : DashboardUiState
-    object Error : DashboardUiState
     object Loading : DashboardUiState
+    data class Success(val works: List<Work>) : DashboardUiState
+    object Error : DashboardUiState
 }
 
 class DashboardViewModel : ViewModel() {
-    var dashboardUiState: DashboardUiState by mutableStateOf(DashboardUiState.Loading)
-        private set
+
+    private val _dashboardUiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
+    val dashboardUiState: StateFlow<DashboardUiState> = _dashboardUiState.asStateFlow()
 
     init {
-        getWorks()
+        // ViewModelが作成されたときに、データを読み込む
+        fetchWorks()
     }
 
-    fun getWorks() {
+    private fun fetchWorks() {
         viewModelScope.launch {
+            _dashboardUiState.value = DashboardUiState.Loading
             try {
-                val result = ApiClient.service.getAllWorks()
-                dashboardUiState = DashboardUiState.Success(result.body())
-            } catch (e: IOException) {
-                dashboardUiState = DashboardUiState.Error
-                Log.e("DashboardViewModel", "Network error", e)
-            } catch (e: HttpException) {
-
-                if (e.code() == 401) {
-                    dashboardUiState = DashboardUiState.Error
-                    Log.e("DashboardViewModel", "Unauthorized: Authentication required", e)
-                    dashboardUiState = DashboardUiState.Error
-                } else {
-                    dashboardUiState = DashboardUiState.Error
-                    Log.e("DashboardViewModel", "HTTP error ${e.code()}", e)
-                }
+                // ここで実際にAPIやデータベースからデータを取得する
+                // このサンプルでは、2秒後にダミーデータを表示する
+                delay(2000)
+                val dummyWorks = listOf(
+                    Work(
+                        id = 1,
+                        title = "シンプルなマフラー",
+                        description = "最近の作業: 5段目を編み終えました",
+                        work_url = "",
+                        row_index = 5,
+                        stitch_index = 0,
+                        is_completed = false,
+                        completed_at = Instant.now(),
+                        created_at = Instant.now().toString(),
+                        updated_at = Instant.now().toString()
+                    ),
+                    Work(
+                        id = 2,
+                        title = "ハートのコースター",
+                        description = "完了！ - 2024/02/01",
+                        work_url = "",
+                        row_index = 0,
+                        stitch_index = 0,
+                        is_completed = true,
+                        completed_at = Instant.now(),
+                        created_at = Instant.now().toString(),
+                        updated_at = Instant.now().toString()
+                    )
+                )
+                _dashboardUiState.value = DashboardUiState.Success(dummyWorks)
+            } catch (e: Exception) {
+                _dashboardUiState.value = DashboardUiState.Error
             }
         }
     }
 }
+

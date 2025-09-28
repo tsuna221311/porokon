@@ -1,19 +1,14 @@
-package com.example.myapplication.navigation
+package com.example.myapplication.ui.navigation
 
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.myapplication.ui.components.drawer.AppDrawer
-import com.example.myapplication.ui.screens.DashboardScreen
-import com.example.myapplication.ui.screens.DashboardUiState
-import com.example.myapplication.ui.screens.DashboardViewModel
-import com.example.myapplication.ui.screens.MyPatternsScreen
-import com.example.myapplication.ui.screens.PatternDetailScreen
-import com.example.myapplication.ui.screens.PatternViewScreen
+import com.example.myapplication.ui.screens.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -22,6 +17,8 @@ object Routes {
     const val MY_PATTERNS = "my_patterns"
     const val PATTERN_VIEW = "pattern_view"
     const val PATTERN_DETAIL = "pattern_detail"
+    const val ENGLISH_PATTERN = "english_pattern"
+    const val PATTERN_EDIT = "pattern_edit" // 編み図修正画面のルートを追加
 }
 
 @Composable
@@ -47,24 +44,36 @@ fun AppNavigation(
     ) {
         NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
             composable(Routes.DASHBOARD) {
-                val dashboardViewModel :DashboardViewModel = viewModel()
+                val dashboardViewModel: DashboardViewModel = viewModel()
                 DashboardScreen(
-                    dashboardUiState = dashboardViewModel.dashboardUiState,
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
+                    dashboardViewModel = dashboardViewModel
                 )
             }
             composable(Routes.MY_PATTERNS) {
                 MyPatternsScreen(
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    navController = navController,
+                    onMenuClick = { scope.launch { drawerState.close() } }
                 )
             }
             composable(Routes.PATTERN_VIEW) {
-                PatternViewScreen(onMenuClick = { scope.launch { drawerState.open() } })
+                PatternViewScreen(
+                    navController = navController,
+                    onMenuClick = { scope.launch { drawerState.open() } }
+                )
             }
             composable(Routes.PATTERN_DETAIL) {
                 PatternDetailScreen(onBackClick = { navController.popBackStack() })
             }
+            composable(Routes.ENGLISH_PATTERN) {
+                EnglishPatternScreen(navController = navController)
+            }
+            // 新しい編み図修正画面のルートをここに追加
+            composable(Routes.PATTERN_EDIT) {
+                PatternEditScreen(navController = navController)
+            }
         }
     }
 }
+

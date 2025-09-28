@@ -1,47 +1,31 @@
 package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.myapplication.ui.components.counter.CompactCounterRow
+import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatternViewScreen(onMenuClick: () -> Unit) {
+fun PatternViewScreen(
+    navController: NavController,
+    onMenuClick: () -> Unit // このパラメータは残しますが、現在は使いません
+) {
     var rowCount by remember { mutableStateOf(12) }
     var stitchCount by remember { mutableStateOf(16) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -52,13 +36,19 @@ fun PatternViewScreen(onMenuClick: () -> Unit) {
             TopAppBar(
                 title = { Text("サンプル編み図") },
                 navigationIcon = {
-                    IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = "メニュー")
+                    // サイドバーメニューではなく「戻る」ボタンに変更
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* 通知処理 */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "通知")
+                    // 翻訳ボタンと修正ボタンを追加
+                    IconButton(onClick = { navController.navigate(Routes.ENGLISH_PATTERN) }) {
+                        Icon(Icons.Default.Translate, contentDescription = "翻訳")
+                    }
+                    // 修正箇所：onClickに画面遷移を追加
+                    IconButton(onClick = { navController.navigate(Routes.PATTERN_EDIT) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "修正")
                     }
                 }
             )
@@ -77,13 +67,19 @@ fun PatternViewScreen(onMenuClick: () -> Unit) {
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("裏面") })
             }
             Box(
-                modifier = Modifier.fillMaxWidth().weight(1f).background(Color.White, RoundedCornerShape(8.dp)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(Color.White, RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("ここに編み図チャートが表示されます", color = Color.Gray)
             }
             Column(
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)).padding(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CompactCounterRow("現在の段数", rowCount) { newCount -> rowCount = newCount }
@@ -91,7 +87,10 @@ fun PatternViewScreen(onMenuClick: () -> Unit) {
                 CompactCounterRow("現在の目数", stitchCount) { newCount -> stitchCount = newCount }
             }
             Column(
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)).padding(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -100,7 +99,9 @@ fun PatternViewScreen(onMenuClick: () -> Unit) {
                 }
                 Divider(color = BgBase, thickness = 1.dp)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {

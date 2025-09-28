@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.navigation.Routes
+import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.SecondarySalmon
 
 @Composable
@@ -39,7 +39,16 @@ fun AppDrawer(onDestinationClicked: (String) -> Unit) {
 
 @Composable
 fun DrawerItem(label: String, icon: ImageVector, route: String, onClick: (String) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { onClick(route) }.padding(vertical = 12.dp)) {
-        Icon(icon, contentDescription = label, tint = Color.Gray); Spacer(Modifier.width(16.dp)); Text(label)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(route) }
+            .padding(vertical = 12.dp)
+    ) {
+        Icon(icon, contentDescription = label, tint = Color.Gray)
+        Spacer(Modifier.width(16.dp))
+        Text(label)
     }
 }
+
