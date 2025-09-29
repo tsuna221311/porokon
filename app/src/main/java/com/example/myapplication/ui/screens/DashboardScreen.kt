@@ -30,23 +30,23 @@ import com.example.myapplication.ui.components.common.PatternListItem
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.PrimaryTeal
 import com.example.myapplication.ui.theme.SecondarySalmon
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun DashboardScreen(
     navController: NavController,
     onMenuClick: () -> Unit,
-    dashboardViewModel: DashboardViewModel = viewModel() // viewModel()で自動的にインスタンスを取得
+    dashboardUiState: StateFlow<DashboardUiState>
 ) {
-    // ViewModelからUIの状態を監視
-    val dashboardUiState by dashboardViewModel.dashboardUiState.collectAsState()
-
     // 状態に応じて表示を切り替える
-    when (val state = dashboardUiState) {
+    val uiState by dashboardUiState.collectAsState()
+
+    when (uiState) {
         is DashboardUiState.Loading -> LoadingScreen()
         is DashboardUiState.Success -> ResultScreen(
             navController = navController,
             onMenuClick = onMenuClick,
-            works = state.works
+            works = (uiState as DashboardUiState.Success).works
         )
         is DashboardUiState.Error -> ErrorScreen()
     }
@@ -71,7 +71,7 @@ fun ErrorScreen(modifier: Modifier = Modifier) {
 fun ResultScreen(
     navController: NavController,
     onMenuClick: () -> Unit,
-    works: List<Work>
+    works: List<Work>?
 ) {
     val context = LocalContext.current
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -98,7 +98,7 @@ fun ResultScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${works.size}件の作品") },
+                title = { Text("${works?.size ?: 0}件の作品") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = "メニュー")
@@ -125,7 +125,7 @@ fun ResultScreen(
         }
     ) { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            items(works) { work ->
+            items(works.orEmpty()) { work ->
                 PatternListItem(
                     title = work.title,
                     description = work.description,

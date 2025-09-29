@@ -48,8 +48,8 @@ fun AppNavigation(
                 DashboardScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
-                    dashboardViewModel = dashboardViewModel
-                )
+                    dashboardUiState = dashboardViewModel.dashboardUiState,
+                    )
             }
             composable(Routes.MY_PATTERNS) {
                 MyPatternsScreen(
