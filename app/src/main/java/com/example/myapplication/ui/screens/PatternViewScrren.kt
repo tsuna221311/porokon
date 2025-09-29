@@ -15,26 +15,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.myapplication.model.Work
 import com.example.myapplication.ui.components.counter.CompactCounterRow
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
+import kotlinx.coroutines.flow.StateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternViewScreen(
     navController: NavController,
-    onMenuClick: () -> Unit // このパラメータは残しますが、現在は使いません
+    onMenuClick: () -> Unit, // このパラメータは残しますが、現在は使いません
+    patternWork: StateFlow<Work?>
 ) {
     var rowCount by remember { mutableStateOf(12) }
     var stitchCount by remember { mutableStateOf(16) }
     var selectedTab by remember { mutableStateOf(0) }
     var sensorConnected by remember { mutableStateOf(false) }
 
+    val work by patternWork.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("サンプル編み図") },
+                title = { Text(text = work?.title ?: "nullでした") },
                 navigationIcon = {
                     // サイドバーメニューではなく「戻る」ボタンに変更
                     IconButton(onClick = { navController.popBackStack() }) {

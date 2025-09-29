@@ -43,10 +43,10 @@ class DashboardViewModel : ViewModel() {
                             title = "シンプルなマフラー",
                             description = "最近の作業: 5段目を編み終えました",
                             work_url = "",
-                            row_index = 5,
+                            raw_index = 5,
                             stitch_index = 0,
                             is_completed = false,
-                            completed_at = Instant.now(),
+                            completed_at = Instant.now().toString(),
                             created_at = Instant.now().toString(),
                             updated_at = Instant.now().toString()
                         ),
@@ -55,10 +55,10 @@ class DashboardViewModel : ViewModel() {
                             title = "ハートのコースター",
                             description = "完了！ - 2024/02/01",
                             work_url = "",
-                            row_index = 0,
+                            raw_index = 0,
                             stitch_index = 0,
                             is_completed = true,
-                            completed_at = Instant.now(),
+                            completed_at = Instant.now().toString(),
                             created_at = Instant.now().toString(),
                             updated_at = Instant.now().toString()
                         )

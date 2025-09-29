@@ -1,12 +1,17 @@
 package com.example.myapplication.ui.navigation
 
+import android.util.Log
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.myapplication.ui.components.drawer.AppDrawer
 import com.example.myapplication.ui.screens.*
 import kotlinx.coroutines.CoroutineScope
@@ -57,11 +62,14 @@ fun AppNavigation(
                     onMenuClick = { scope.launch { drawerState.close() } }
                 )
             }
-            composable(Routes.PATTERN_VIEW) {
+            composable("${Routes.PATTERN_VIEW}/{workId}",
+                arguments = listOf(navArgument("workId"){ type = NavType.IntType })
+            ) { backStackEntry ->
+                val patternViewModel: PatternViewModel = viewModel()
                 PatternViewScreen(
                     navController = navController,
-                    onMenuClick = { scope.launch { drawerState.open() } }
-                )
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    patternWork = patternViewModel.work)
             }
             composable(Routes.PATTERN_DETAIL) {
                 PatternDetailScreen(onBackClick = { navController.popBackStack() })
