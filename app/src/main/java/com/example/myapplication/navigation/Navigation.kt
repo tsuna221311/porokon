@@ -69,7 +69,8 @@ fun AppNavigation(
                 PatternViewScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
-                    patternWork = patternViewModel.work)
+                    viewModel = patternViewModel
+                )
             }
             composable(Routes.PATTERN_DETAIL) {
                 PatternDetailScreen(onBackClick = { navController.popBackStack() })

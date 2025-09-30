@@ -132,7 +132,8 @@ fun ResultScreen(
                     icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
                     iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
                     onClick = {
-                        navController.navigate("${Routes.PATTERN_VIEW}/${work.id}")
+//                        navController.navigate("${Routes.PATTERN_VIEW}/${work.id}")
+                        navController.navigate("${Routes.PATTERN_VIEW}/${1}")
                     }
                 )
             }
