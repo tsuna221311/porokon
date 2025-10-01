@@ -5,8 +5,10 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.myapplication.ui.components.drawer.AppDrawer
 import com.example.myapplication.ui.screens.*
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +20,8 @@ object Routes {
     const val PATTERN_VIEW = "pattern_view"
     const val PATTERN_DETAIL = "pattern_detail"
     const val ENGLISH_PATTERN = "english_pattern"
-    const val PATTERN_EDIT = "pattern_edit" // 編み図修正画面のルートを追加
+    const val PATTERN_EDIT = "pattern_edit"
+    const val OCR_CAPTURE = "ocr_capture" // ★★★ 新しいOCR画面のルートを追加 ★★★
 }
 
 @Composable
@@ -45,11 +48,12 @@ fun AppNavigation(
         NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
             composable(Routes.DASHBOARD) {
                 val dashboardViewModel: DashboardViewModel = viewModel()
+                // パラメータ名を修正
                 DashboardScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
-                    dashboardUiState = dashboardViewModel.dashboardUiState,
-                    )
+                    dashboardViewModel = dashboardViewModel
+                )
             }
             composable(Routes.MY_PATTERNS) {
                 MyPatternsScreen(
@@ -57,10 +61,14 @@ fun AppNavigation(
                     onMenuClick = { scope.launch { drawerState.close() } }
                 )
             }
-            composable(Routes.PATTERN_VIEW) {
+            composable("${Routes.PATTERN_VIEW}/{workId}",
+                arguments = listOf(navArgument("workId"){ type = NavType.IntType })
+            ) { backStackEntry ->
+                val patternViewModel: PatternViewModel = viewModel()
                 PatternViewScreen(
                     navController = navController,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    viewModel = patternViewModel
                 )
             }
             composable(Routes.PATTERN_DETAIL) {
@@ -69,11 +77,13 @@ fun AppNavigation(
             composable(Routes.ENGLISH_PATTERN) {
                 EnglishPatternScreen(navController = navController)
             }
-            // 新しい編み図修正画面のルートをここに追加
             composable(Routes.PATTERN_EDIT) {
                 PatternEditScreen(navController = navController)
+            }
+            // ★★★ 新しいOCR画面のルートをここに追加 ★★★
+            composable(Routes.OCR_CAPTURE) {
+                OcrScreen(navController = navController)
             }
         }
     }
 }
-

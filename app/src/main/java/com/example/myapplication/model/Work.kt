@@ -7,11 +7,11 @@ data class Work(
     val id: Int,
     val title: String,
     val work_url: String,
-    val row_index: Int,
+    val raw_index: Int,
     val stitch_index: Int,
     val is_completed: Boolean,
     val description: String,
-    val completed_at: Instant?, // A completed work might not have a completed_at time, so it can be nullable
+    val completed_at: String? = null, // A completed work might not have a completed_at time, so it can be nullable
     val updated_at: String,
     val created_at: String
 )

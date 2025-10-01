@@ -69,11 +69,13 @@ dependencies {
 
     // Navigation for Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Image Loading (Coil)
+    implementation("io.coil-kt:coil-compose:2.6.0")
     // Extended Material Icons for Compose
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
     // Firebase Bill of Materials (BOM)
-    // This ensures all Firebase libraries use compatible versions.
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     // Firebase services
     implementation("com.google.firebase:firebase-analytics")
@@ -83,9 +85,12 @@ dependencies {
     // Firebase UI for easy authentication screens
     implementation("com.firebaseui:firebase-ui-auth:8.0.2") // Updated to a stable version
 
-    // Retrofit for networking
-    implementation("com.squareup.retrofit2:retrofit:2.9.0") // Common stable version
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0") // Common stable version
+    // Networking (OkHttp & Retrofit) - Using BOM for version alignment
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.12.0"))
+    implementation("com.squareup.okhttp3:okhttp")
+    implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
 
     // Testing libraries

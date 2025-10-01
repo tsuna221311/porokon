@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,6 +42,13 @@ fun PatternEditScreen(
                     }
                 },
                 actions = {
+                    // 「元に戻す」ボタンを追加
+                    IconButton(
+                        onClick = { patternEditViewModel.undo() },
+                        enabled = uiState.canUndo // canUndoがtrueの時だけ押せる
+                    ) {
+                        Icon(Icons.Default.Undo, contentDescription = "元に戻す")
+                    }
                     Button(onClick = {
                         patternEditViewModel.savePattern()
                         navController.popBackStack()
@@ -64,16 +72,20 @@ fun PatternEditScreen(
                     .padding(16.dp)
                     .background(Color.LightGray.copy(alpha = 0.3f))
             ) {
+                // flatten()で2次元配列を1次元にして表示
                 itemsIndexed(uiState.patternGrid.flatten()) { index, symbol ->
-                    val row = index / uiState.patternGrid.first().size
-                    val col = index % uiState.patternGrid.first().size
+                    val row = index / (uiState.patternGrid.firstOrNull()?.size ?: 1)
+                    val col = index % (uiState.patternGrid.firstOrNull()?.size ?: 1)
                     val isSelected = uiState.selectedCell == Pair(row, col)
 
                     Box(
                         modifier = Modifier
                             .aspectRatio(1f)
                             .background(Color.White)
-                            .border(0.5.dp, if (isSelected) PrimaryTeal else Color.LightGray)
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) PrimaryTeal else Color.LightGray
+                            )
                             .clickable { patternEditViewModel.onCellClicked(row, col) },
                         contentAlignment = Alignment.Center
                     ) {
@@ -96,10 +108,17 @@ fun PatternEditScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { /* TODO */ }, modifier = Modifier.weight(1f)) {
+                    Button(
+                        onClick = { patternEditViewModel.addRow() },
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text("行を追加")
                     }
-                    Button(onClick = { /* TODO */ }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                    Button(
+                        onClick = { patternEditViewModel.removeRow() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
                         Text("行を削除")
                     }
                 }
@@ -126,3 +145,4 @@ fun SymbolPalette(selectedSymbol: String, onSymbolSelected: (String) -> Unit) {
         }
     }
 }
+

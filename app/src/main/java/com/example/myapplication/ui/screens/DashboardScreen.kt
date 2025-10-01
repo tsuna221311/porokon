@@ -36,10 +36,10 @@ import kotlinx.coroutines.flow.StateFlow
 fun DashboardScreen(
     navController: NavController,
     onMenuClick: () -> Unit,
-    dashboardUiState: StateFlow<DashboardUiState>
+    dashboardViewModel: DashboardViewModel
 ) {
     // 状態に応じて表示を切り替える
-    val uiState by dashboardUiState.collectAsState()
+    val uiState by dashboardViewModel.dashboardUiState.collectAsState()
 
     when (uiState) {
         is DashboardUiState.Loading -> LoadingScreen()
@@ -131,7 +131,9 @@ fun ResultScreen(
                     description = work.description,
                     icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
                     iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
-                    onClick = { navController.navigate(Routes.PATTERN_VIEW) }
+                    onClick = {
+                        navController.navigate("${Routes.PATTERN_VIEW}/${work.id}")
+                    }
                 )
             }
         }
