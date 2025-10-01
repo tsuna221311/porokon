@@ -17,7 +17,7 @@ import java.time.Instant
 // --- UIの状態をここで一元管理 ---
 sealed interface DashboardUiState {
     object Loading : DashboardUiState
-    data class Success(val works: List<Work>?) : DashboardUiState
+    data class Success(val works: List<Work>) : DashboardUiState
     object Error : DashboardUiState
 }
 
@@ -36,37 +36,7 @@ class DashboardViewModel : ViewModel() {
             _dashboardUiState.value = DashboardUiState.Loading
             try {
                 val result = ApiClient.service.getAllWorks()
-                if (result.body() == null) {
-                    val dummyWorks = listOf(
-                        Work(
-                            id = 1,
-                            title = "シンプルなマフラー",
-                            description = "最近の作業: 5段目を編み終えました",
-                            work_url = "",
-                            raw_index = 5,
-                            stitch_index = 0,
-                            is_completed = false,
-                            completed_at = Instant.now().toString(),
-                            created_at = Instant.now().toString(),
-                            updated_at = Instant.now().toString()
-                        ),
-                        Work(
-                            id = 2,
-                            title = "ハートのコースター",
-                            description = "完了！ - 2024/02/01",
-                            work_url = "",
-                            raw_index = 0,
-                            stitch_index = 0,
-                            is_completed = true,
-                            completed_at = Instant.now().toString(),
-                            created_at = Instant.now().toString(),
-                            updated_at = Instant.now().toString()
-                        )
-                    )
-                    _dashboardUiState.value = DashboardUiState.Success(dummyWorks)
-                } else {
-                    _dashboardUiState.value = DashboardUiState.Success(result.body())
-                }
+                _dashboardUiState.value = DashboardUiState.Success(result.body() ?: emptyList())
             } catch (e: IOException) {
                 _dashboardUiState.value = DashboardUiState.Error
                 Log.e("DashboardViewModel", "Network error", e)
