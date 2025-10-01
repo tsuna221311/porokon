@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 object Routes {
     const val DASHBOARD = "dashboard"
     const val MY_PATTERNS = "my_patterns"
-    const val PATTERN_VIEW = "pattern_view"
     const val PATTERN_DETAIL = "pattern_detail"
     const val ENGLISH_PATTERN = "english_pattern"
     const val PATTERN_EDIT = "pattern_edit"
@@ -61,18 +60,15 @@ fun AppNavigation(
                     onMenuClick = { scope.launch { drawerState.close() } }
                 )
             }
-            composable("${Routes.PATTERN_VIEW}/{workId}",
+            composable("${Routes.PATTERN_DETAIL}/{workId}",
                 arguments = listOf(navArgument("workId"){ type = NavType.IntType })
             ) { backStackEntry ->
-                val patternViewModel: PatternViewModel = viewModel()
-                PatternViewScreen(
+                val patternViewModel: PatternDetailViewModel = viewModel()
+                PatternDetailScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
                     viewModel = patternViewModel
                 )
-            }
-            composable(Routes.PATTERN_DETAIL) {
-                PatternDetailScreen(onBackClick = { navController.popBackStack() })
             }
             composable(Routes.ENGLISH_PATTERN) {
                 EnglishPatternScreen(navController = navController)
