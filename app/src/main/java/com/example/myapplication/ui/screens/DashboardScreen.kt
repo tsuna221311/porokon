@@ -37,9 +37,10 @@ fun DashboardScreen(
     navController: NavController,
     onMenuClick: () -> Unit,
     dashboardViewModel: DashboardViewModel
+    dashboardViewModel: DashboardViewModel
 ) {
     // 状態に応じて表示を切り替える
-    val uiState by dashboardViewModel.dashboardUiState.collectAsState()
+    val uiState by dashboardViewModel.dashboardViewModel.dashboardUiState.collectAsState()
 
     when (uiState) {
         is DashboardUiState.Loading -> LoadingScreen()
