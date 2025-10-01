@@ -6,10 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import androidx.navigation.navArgument
 import com.example.myapplication.ui.components.drawer.AppDrawer
 import com.example.myapplication.ui.screens.*
@@ -21,8 +19,6 @@ object Routes {
     const val MY_PATTERNS = "my_patterns"
     const val PATTERN_DETAIL = "pattern_detail"
     const val ENGLISH_PATTERN = "english_pattern"
-    const val PATTERN_EDIT = "pattern_edit"
-    const val OCR_CAPTURE = "ocr_capture" // ★★★ 新しいOCR画面のルートを追加 ★★★
     const val PATTERN_EDIT = "pattern_edit"
     const val OCR_CAPTURE = "ocr_capture" // ★★★ 新しいOCR画面のルートを追加 ★★★
 }
@@ -58,8 +54,6 @@ fun AppNavigation(
                     onMenuClick = { scope.launch { drawerState.open() } },
                     dashboardViewModel = dashboardViewModel
                 )
-                    dashboardViewModel = dashboardViewModel
-                )
             }
             composable(Routes.MY_PATTERNS) {
                 MyPatternsScreen(
@@ -74,7 +68,6 @@ fun AppNavigation(
                 PatternDetailScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
-                    viewModel = patternViewModel,
                     viewModel = patternViewModel
                 )
             }

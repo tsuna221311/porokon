@@ -16,26 +16,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.myapplication.model.IncrementStitchRequest
-import com.example.myapplication.model.IncrementStitchRequest
-import com.example.myapplication.model.Work
 import com.example.myapplication.ui.components.counter.CompactCounterRow
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
-import kotlinx.coroutines.flow.StateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternDetailScreen(
     navController: NavController,
-    onMenuClick: () -> Unit,, // このパラメータは残しますが、現在は使いません
+    onMenuClick: () -> Unit, // このパラメータは残しますが、現在は使いません
     viewModel: PatternDetailViewModel
-    viewModel: PatternViewModel
 ) {
-    val work by viewModel.work.collectAsState()
 
-    var rowCount by remember { mutableStateOf(3) }
-    var stitchCount by remember { mutableStateOf(5) }
     val work by viewModel.work.collectAsState()
 
     var rowCount by remember { mutableStateOf(3) }
@@ -60,7 +53,6 @@ fun PatternDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = work?.title ?: "nullでした") },
                 title = { Text(text = work?.title ?: "nullでした") },
                 navigationIcon = {
                     // サイドバーメニューではなく「戻る」ボタンに変更
@@ -123,35 +115,7 @@ fun PatternDetailScreen(
                         ))
                     }
                 )
-                CompactCounterRow(
-                    label = "現在の段数",
-                    count = rowCount,
-                    onCountChange = { newCount ->
-                        // Compose 内の状態更新
-                        rowCount = newCount
-                        // ViewModel の関数呼び出し
-                        viewModel.IncrementStitch(request = IncrementStitchRequest(
-                            raw_index = rowCount,
-                            stitch_index = stitchCount,
-                            is_completed = false
-                        ))
-                    }
-                )
                 Divider(color = BgBase, thickness = 1.dp)
-                CompactCounterRow(
-                    label = "現在の目数",
-                    count = stitchCount,
-                    onCountChange = { newCount ->
-                        // Compose 内の状態更新
-                        stitchCount = newCount
-                        // ViewModel の関数呼び出し
-                        viewModel.IncrementStitch(request = IncrementStitchRequest(
-                            raw_index = rowCount,
-                            stitch_index = stitchCount,
-                            is_completed = false
-                        ))
-                    }
-                )
                 CompactCounterRow(
                     label = "現在の目数",
                     count = stitchCount,

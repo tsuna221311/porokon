@@ -44,7 +44,6 @@ class DashboardViewModel : ViewModel() {
                 if (e.code() == 401) {
                     _dashboardUiState.value = DashboardUiState.Error
                     Log.e("DashboardViewModel", "Unauthorized: Authentication required", e)
-                    _dashboardUiState.value = DashboardUiState.Error
                 } else {
                     _dashboardUiState.value = DashboardUiState.Error
                     Log.e("DashboardViewModel", "HTTP error ${e.code()}", e)
