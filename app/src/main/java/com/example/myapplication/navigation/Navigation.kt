@@ -79,6 +79,10 @@ fun AppNavigation(
             composable(Routes.OCR_CAPTURE) {
                 OcrScreen(navController = navController)
             }
+            // ★★★ 新しいOCR画面のルートをここに追加 ★★★
+            composable(Routes.OCR_CAPTURE) {
+                OcrScreen(navController = navController)
+            }
         }
     }
 }
