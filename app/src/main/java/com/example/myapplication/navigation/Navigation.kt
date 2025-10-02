@@ -47,8 +47,6 @@ fun AppNavigation(
         NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
             composable(Routes.DASHBOARD) {
                 val dashboardViewModel: DashboardViewModel = viewModel()
-                // パラメータ名を修正
-                // パラメータ名を修正
                 DashboardScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
@@ -58,7 +56,7 @@ fun AppNavigation(
             composable(Routes.MY_PATTERNS) {
                 MyPatternsScreen(
                     navController = navController,
-                    onMenuClick = { scope.launch { drawerState.close() } }
+                    onMenuClick = { scope.launch { drawerState.open() } }
                 )
             }
             composable("${Routes.PATTERN_DETAIL}/{workId}",
