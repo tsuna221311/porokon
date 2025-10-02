@@ -98,7 +98,7 @@ fun ResultScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${works.size ?: 0}件の作品") },
+                title = { Text("${works.size}件の作品") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = "メニュー")
