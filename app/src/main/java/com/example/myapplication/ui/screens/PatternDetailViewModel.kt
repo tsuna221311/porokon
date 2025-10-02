@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-class PatternViewModel (
+class PatternDetailViewModel (
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val id: Int = savedStateHandle.get<Int>("workId") ?: 100

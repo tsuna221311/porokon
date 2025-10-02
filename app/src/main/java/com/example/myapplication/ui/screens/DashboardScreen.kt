@@ -71,7 +71,7 @@ fun ErrorScreen(modifier: Modifier = Modifier) {
 fun ResultScreen(
     navController: NavController,
     onMenuClick: () -> Unit,
-    works: List<Work>?
+    works: List<Work>
 ) {
     val context = LocalContext.current
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -98,7 +98,7 @@ fun ResultScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${works?.size ?: 0}件の作品") },
+                title = { Text("${works.size}件の作品") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = "メニュー")
@@ -120,21 +120,39 @@ fun ResultScreen(
                 },
                 containerColor = PrimaryTeal
             ) {
-                Icon(Icons.Default.PhotoCamera, contentDescription = "カメラを起動", tint = Color.White)
+                Icon(
+                    Icons.Default.PhotoCamera,
+                    contentDescription = "カメラを起動",
+                    tint = Color.White
+                )
             }
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            items(works.orEmpty()) { work ->
-                PatternListItem(
-                    title = work.title,
-                    description = work.description,
-                    icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
-                    iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
-                    onClick = {
-                        navController.navigate("${Routes.PATTERN_VIEW}/${work.id}")
-                    }
+        if (works.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "作品がありません",
+                    style = MaterialTheme.typography.bodyMedium,
                 )
+            }
+        } else {
+            LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                items(works) { work ->
+                    PatternListItem(
+                        title = work.title,
+                        description = work.description,
+                        icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
+                        iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
+                        onClick = {
+                            navController.navigate("${Routes.PATTERN_DETAIL}/${work.id}")
+                        }
+                    )
+                }
             }
         }
     }

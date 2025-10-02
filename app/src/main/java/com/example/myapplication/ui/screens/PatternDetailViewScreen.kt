@@ -16,26 +16,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.myapplication.model.IncrementStitchRequest
-import com.example.myapplication.model.Work
 import com.example.myapplication.ui.components.counter.CompactCounterRow
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
-import kotlinx.coroutines.flow.StateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatternViewScreen(
+fun PatternDetailScreen(
     navController: NavController,
     onMenuClick: () -> Unit, // このパラメータは残しますが、現在は使いません
-    viewModel: PatternViewModel
+    viewModel: PatternDetailViewModel
 ) {
+
     val work by viewModel.work.collectAsState()
 
     var rowCount by remember { mutableStateOf(3) }
     var stitchCount by remember { mutableStateOf(5) }
     var selectedTab by remember { mutableStateOf(0) }
     var sensorConnected by remember { mutableStateOf(false) }
+
+    LaunchedEffect(work) {
+        if (work != null) {
+            rowCount = work?.raw_index ?: 0
+            stitchCount = work?.stitch_index ?: 0
+        }
+    }
 
     LaunchedEffect(work) {
         if (work != null) {

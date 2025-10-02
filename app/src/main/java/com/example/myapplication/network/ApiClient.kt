@@ -1,5 +1,6 @@
 package com.example.myapplication.network
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -24,6 +25,7 @@ class AuthInterceptor : Interceptor {
         val request = chain.request().newBuilder()
             .apply {
                 if (!token.isNullOrBlank()) {
+                    Log.d("token", token)
                     addHeader("Authorization", "Bearer $token")
                 }
             }
