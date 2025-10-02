@@ -3,6 +3,7 @@ package com.example.myapplication.network
 import com.example.myapplication.model.ChangeDisplayNameRequest
 import com.example.myapplication.model.CsvConversions
 import com.example.myapplication.model.IncrementStitchRequest
+import com.example.myapplication.model.RegisterWork
 import com.example.myapplication.model.User
 import com.example.myapplication.model.Work
 import okhttp3.Call
@@ -32,6 +33,11 @@ interface ApiService {
     @GET("v1/works")
     suspend fun getAllWorks(): Response<List<Work>>
 
+    @POST("v1/works")
+    suspend fun registerWork(
+        @Body work : RegisterWork
+    ): Response<Work>
+
     @GET("v1/works/{id}")
     suspend fun getOneWork(
         @Path("id") id: Int
@@ -53,10 +59,4 @@ interface ApiService {
     suspend fun uploadImage(
         @Part file: MultipartBody.Part
     ): Response<CsvConversions>
-
-    @GET
-    suspend fun downloadCsv(
-        @Url signedUrl: String
-    ): Response<ResponseBody>
-
 }
