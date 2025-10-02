@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.IncrementStitchRequest
 import com.example.myapplication.model.Work
 import com.example.myapplication.network.ApiClient
+import com.example.myapplication.network.GCSApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -28,23 +29,8 @@ class PatternDetailViewModel (
         viewModelScope.launch {
             try {
                 val body = ApiClient.service.getOneWork(id).body()
-                if (body == null || body.title.isNullOrBlank()) {
-                    _work.value = Work(
-                        id = 0,
-                        title = "鯖には何もなかった",
-                        description = "完了！ - 2024/02/01",
-                        work_url = "",
-                        raw_index = 5,
-                        stitch_index = 0,
-                        is_completed = true,
-                        completed_at = Instant.now().toString(),
-                        created_at = Instant.now().toString(),
-                        updated_at = Instant.now().toString()
-                    )
-                } else {
                     _work.value = body
-//                    fetchCsv(body.work_url)
-                }
+                    fetchCsv(body?.work_url ?: "")
 
             } catch (e: Exception) {
                 Log.e("PatternViewModel", "エラー", e)
@@ -73,12 +59,12 @@ class PatternDetailViewModel (
     private fun fetchCsv(signedUrl: String) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.service.downloadCsv(signedUrl)
+                val response = GCSApiClient.service.downloadCsv(signedUrl)
                 if (response.isSuccessful) {
                     val csvText = response.body()?.string() ?: ""
-                    println(csvText) // CSV の内容
+                    Log.d("csvText",csvText) // CSV の内容
                 } else {
-                    println("Failed: ${response.code()}")
+                    Log.d("csvText","Failed: ${response.message()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
