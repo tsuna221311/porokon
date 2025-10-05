@@ -12,13 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.myapplication.ui.components.counter.CompactCounterRow
+// ↓ あなたのプロジェクトの正しいパスに修正してください
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.BgBase
-import com.example.myapplication.ui.theme.PrimaryTeal
+// import com.example.myapplication.viewmodels.PatternViewModel // ViewModelのパスをインポートしてください
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,10 +26,11 @@ fun PatternViewScreen(
     navController: NavController,
     viewModel: PatternViewModel
 ) {
-    // ViewModelからUIの状態を監視する
+    // UIの状態をViewModelから監視
     val uiState by viewModel.uiState.collectAsState()
-
+    // 選択中のタブの状態（0: 表面, 1: 裏面）
     var selectedTab by remember { mutableStateOf(0) }
+    // センサー接続状態（このコードでは未使用ですが残しておきます）
     var sensorConnected by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -42,9 +43,11 @@ fun PatternViewScreen(
                     }
                 },
                 actions = {
+                    // 翻訳画面へ
                     IconButton(onClick = { navController.navigate(Routes.ENGLISH_PATTERN) }) {
                         Icon(Icons.Default.Translate, contentDescription = "翻訳")
                     }
+                    // 編集画面へ
                     IconButton(onClick = { navController.navigate(Routes.PATTERN_EDIT) }) {
                         Icon(Icons.Default.Edit, contentDescription = "修正")
                     }
@@ -52,13 +55,13 @@ fun PatternViewScreen(
             )
         }
     ) { paddingValues ->
-        // ローディング状態の表示
+        // データ読み込み中の表示
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else if (uiState.work != null) {
-            // データ取得成功時のUI
+            // データ読み込み完了後の表示
             val work = uiState.work!!
             Column(
                 modifier = Modifier
@@ -68,10 +71,13 @@ fun PatternViewScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 表面・裏面を切り替えるタブ
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("表面") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("裏面") })
                 }
+
+                // 編み図チャート表示エリア
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -81,6 +87,8 @@ fun PatternViewScreen(
                 ) {
                     Text("ここに編み図チャートが表示されます", color = Color.Gray)
                 }
+
+                //カウンター表示エリア
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -88,47 +96,15 @@ fun PatternViewScreen(
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // ★★★ UIの状態はViewModelから直接受け取り、操作はViewModelの関数を呼び出す ★★★
-                    CompactCounterRow(
-                        label = "現在の段数",
-                        count = work.row_index,
-                        onCountChange = { newCount ->
-                            if (newCount > work.row_index) viewModel.incrementRow() else viewModel.decrementRow()
-                        }
-                    )
-                    HorizontalDivider(color = BgBase, thickness = 1.dp)
-                    CompactCounterRow(
-                        label = "現在の目数",
-                        count = work.stitch_index,
-                        onCountChange = { /* TODO: 目数用のViewModel関数を呼び出す */ }
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {}, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)) { Text("段数モード") }
-                        Button(onClick = {}, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray)) { Text("目数モード", color = Color.DarkGray) }
+                    // 現在の段数カウンター
+                    CompactCounterRow("現在の段数", work.rowIndex) { newCount -> // 修正: .row_index -> .rowIndex
+                        if (newCount > work.rowIndex) viewModel.incrementRow() else viewModel.decrementRow() // 修正
                     }
+
                     HorizontalDivider(color = BgBase, thickness = 1.dp)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("センサー接続", fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
-                        Switch(
-                            checked = sensorConnected,
-                            onCheckedChange = { sensorConnected = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryTeal)
-                        )
-                    }
+
+                    // 現在の目数カウンター
+                    CompactCounterRow("現在の目数", work.stitchIndex) { /* TODO */ } // 修正: .stitch_index -> .stitchIndex
                 }
             }
         }

@@ -10,20 +10,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// UIの状態を表す
+// OCR画面のUIの状態を定義する
 sealed interface OcrUiState {
-    // 初期状態：まだ何もしていない
-    object Idle : OcrUiState
-    // ★★★ 新しく追加：写真が撮影され、確認を待っている状態 ★★★
-    data class ImageCaptured(val uri: Uri) : OcrUiState
-    // 処理中：APIに問い合わせ中など
-    object Processing : OcrUiState
-    // テキスト抽出完了：ユーザーが修正可能
-    data class TextExtracted(val text: String) : OcrUiState
-    // CSVプレビュー：この内容で保存するか確認
-    data class CsvGenerated(val csv: String, val patternName: String) : OcrUiState
-    // エラー発生
-    data class Error(val message: String) : OcrUiState
+    object Idle : OcrUiState // 初期状態
+    data class ImageCaptured(val uri: Uri) : OcrUiState // 写真撮影後の確認状態
+    object Processing : OcrUiState // 処理中
+    data class TextExtracted(val text: String) : OcrUiState // テキスト抽出完了
+    data class CsvGenerated(val csv: String, val patternName: String) : OcrUiState // CSV生成完了
+    data class Error(val message: String) : OcrUiState // エラー発生
 }
 
 class OcrViewModel : ViewModel() {
@@ -34,7 +28,6 @@ class OcrViewModel : ViewModel() {
     // 写真が撮影されたときにUIから呼び出される
     fun onImageCaptured(uri: Uri?) {
         if (uri != null) {
-            // すぐに処理を開始するのではなく、まず確認状態に移行する
             _uiState.update { OcrUiState.ImageCaptured(uri) }
         } else {
             _uiState.update { OcrUiState.Error("写真の撮影に失敗しました。") }
@@ -46,7 +39,7 @@ class OcrViewModel : ViewModel() {
         _uiState.update { OcrUiState.Idle }
     }
 
-    // 「この写真を使う」が押されたときに呼び出される
+    // 「この写真を使う」が押されたときに呼び出される (API通信のシミュレーション)
     fun processImageToText(uri: Uri) {
         viewModelScope.launch {
             _uiState.update { OcrUiState.Processing }
@@ -64,15 +57,19 @@ class OcrViewModel : ViewModel() {
 
     // ユーザーがテキストを修正した後に呼び出される
     fun onTextConfirmed(text: String) {
+        // --- ここでテキストを解析してCSVに変換するロジックを呼び出す ---
         val dummyCsv = "k,k,p,p,k,k,p,p\nk,k,p,p,k,k,p,p"
+        // -----------------------------------------------------------
         _uiState.update { OcrUiState.CsvGenerated(dummyCsv, "新しい作品") }
     }
 
     // CSVを作品として保存する
     fun saveWork(csv: String, patternName: String) {
+        // --- ここでデータベースに新しいWorkを保存するロジックを実装する ---
         println("作品名: $patternName")
         println("CSVデータ:\n$csv")
         println("を保存しました！")
+        // -----------------------------------------------------------------
     }
 }
 

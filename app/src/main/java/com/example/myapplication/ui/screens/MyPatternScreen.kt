@@ -31,7 +31,7 @@ fun MyPatternsScreen(
                 }
             )
         },
-        // ★★★ フローティングアクションボタンを追加 ★★★
+        // フローティングアクションボタンを追加
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate(Routes.OCR_CAPTURE) },
@@ -51,5 +51,3 @@ fun MyPatternsScreen(
         }
     }
 }
-
-

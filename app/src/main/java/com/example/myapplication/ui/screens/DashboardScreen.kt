@@ -30,23 +30,24 @@ import com.example.myapplication.ui.components.common.PatternListItem
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.PrimaryTeal
 import com.example.myapplication.ui.theme.SecondarySalmon
-import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun DashboardScreen(
     navController: NavController,
     onMenuClick: () -> Unit,
-    dashboardViewModel: DashboardViewModel
+    // ★★★ 修正箇所：ViewModelインスタンスを直接受け取るように変更 ★★★
+    dashboardViewModel: DashboardViewModel = viewModel()
 ) {
-    // 状態に応じて表示を切り替える
+    // ViewModelからUIの状態を監視
     val uiState by dashboardViewModel.dashboardUiState.collectAsState()
 
-    when (uiState) {
+    // 状態に応じて表示を切り替える
+    when (val state = uiState) {
         is DashboardUiState.Loading -> LoadingScreen()
         is DashboardUiState.Success -> ResultScreen(
             navController = navController,
             onMenuClick = onMenuClick,
-            works = (uiState as DashboardUiState.Success).works
+            works = state.works
         )
         is DashboardUiState.Error -> ErrorScreen()
     }
@@ -98,7 +99,7 @@ fun ResultScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${works.size ?: 0}件の作品") },
+                title = { Text("${works.size}件の作品") },
                 navigationIcon = {
                     IconButton(onClick = onMenuClick) {
                         Icon(Icons.Default.Menu, contentDescription = "メニュー")
@@ -120,39 +121,21 @@ fun ResultScreen(
                 },
                 containerColor = PrimaryTeal
             ) {
-                Icon(
-                    Icons.Default.PhotoCamera,
-                    contentDescription = "カメラを起動",
-                    tint = Color.White
-                )
+                Icon(Icons.Default.PhotoCamera, contentDescription = "カメラを起動", tint = Color.White)
             }
         }
     ) { paddingValues ->
-        if (works.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "作品がありません",
-                    style = MaterialTheme.typography.bodyMedium,
+        LazyColumn(modifier = Modifier.padding(paddingValues)) {
+            items(works) { work ->
+                PatternListItem(
+                    title = work.title,
+                    description = work.description,
+                    icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
+                    iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
+                    onClick = {
+                        navController.navigate("${Routes.PATTERN_VIEW}/${work.id}")
+                    }
                 )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.padding(paddingValues)) {
-                items(works) { work ->
-                    PatternListItem(
-                        title = work.title,
-                        description = work.description,
-                        icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
-                        iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
-                        onClick = {
-                            navController.navigate("${Routes.PATTERN_DETAIL}/${work.id}")
-                        }
-                    )
-                }
             }
         }
     }

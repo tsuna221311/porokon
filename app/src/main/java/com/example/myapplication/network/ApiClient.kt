@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit
 
 val baseUrl = "http://10.0.2.2:8080/"
 
+
 class AuthInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val user = FirebaseAuth.getInstance().currentUser

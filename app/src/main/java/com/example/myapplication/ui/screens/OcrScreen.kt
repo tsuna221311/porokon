@@ -73,17 +73,13 @@ fun OcrScreen(
                         Text("写真を撮る")
                     }
                 }
-                // ★★★ 新しく追加：写真確認UI ★★★
                 is OcrUiState.ImageCaptured -> {
                     Text("この写真でよろしいですか？", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(16.dp))
-                    // 撮影した写真をプレビュー表示
                     AsyncImage(
                         model = state.uri,
                         contentDescription = "撮影した写真",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                        modifier = Modifier.fillMaxWidth().weight(1f),
                         contentScale = ContentScale.Fit
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -91,16 +87,10 @@ fun OcrScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { ocrViewModel.retakePhoto() },
-                            modifier = Modifier.weight(1f)
-                        ) {
+                        OutlinedButton(onClick = { ocrViewModel.retakePhoto() }, modifier = Modifier.weight(1f)) {
                             Text("撮り直す")
                         }
-                        Button(
-                            onClick = { ocrViewModel.processImageToText(state.uri) },
-                            modifier = Modifier.weight(1f)
-                        ) {
+                        Button(onClick = { ocrViewModel.processImageToText(state.uri) }, modifier = Modifier.weight(1f)) {
                             Text("この写真を使う")
                         }
                     }
@@ -110,10 +100,39 @@ fun OcrScreen(
                     Text("画像を解析中...", modifier = Modifier.padding(top = 16.dp))
                 }
                 is OcrUiState.TextExtracted -> {
-                    // ... 変更なし ...
+                    var text by remember { mutableStateOf(state.text) }
+                    Text("OCRの結果を確認・修正してください", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 16.dp)
+                    )
+                    Button(onClick = { ocrViewModel.onTextConfirmed(text) }) {
+                        Text("編み図に変換")
+                    }
                 }
                 is OcrUiState.CsvGenerated -> {
-                    // ... 変更なし ...
+                    var name by remember { mutableStateOf(state.patternName) }
+                    Text("変換が完了しました！", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("作品名") },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                    )
+                    Text("CSVプレビュー:")
+                    OutlinedTextField(
+                        value = state.csv,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.padding(8.dp).weight(1f).fillMaxWidth()
+                    )
+                    Button(onClick = {
+                        ocrViewModel.saveWork(state.csv, name)
+                        navController.popBackStack()
+                    }) {
+                        Text("この内容で作品を保存")
+                    }
                 }
                 is OcrUiState.Error -> {
                     Text("エラー: ${state.message}", color = MaterialTheme.colorScheme.error)
@@ -122,6 +141,5 @@ fun OcrScreen(
         }
     }
 }
-
 
 
