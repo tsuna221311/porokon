@@ -19,7 +19,9 @@ object Routes {
     const val MY_PATTERNS = "my_patterns"
     const val PATTERN_VIEW = "pattern_view"
     const val PATTERN_DETAIL = "pattern_detail"
-    // ... 他のルート
+    const val ENGLISH_PATTERN = "english_pattern"
+    const val PATTERN_EDIT = "pattern_edit"
+    const val OCR_CAPTURE = "ocr_capture" // ★★★ 新しいOCR画面のルートを追加 ★★★
 }
 
 @Composable
@@ -30,11 +32,23 @@ fun AppNavigation(
 ) {
     ModalNavigationDrawer(
         drawerState = drawerState,
-        drawerContent = { /* ... */ }
+        drawerContent = {
+            AppDrawer(
+                onDestinationClicked = { route ->
+                    scope.launch {
+                        drawerState.close()
+                    }
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     ) {
         NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
             composable(Routes.DASHBOARD) {
                 val dashboardViewModel: DashboardViewModel = viewModel()
+                // パラメータ名を修正
                 DashboardScreen(
                     navController = navController,
                     onMenuClick = { scope.launch { drawerState.open() } },
@@ -47,21 +61,29 @@ fun AppNavigation(
                     onMenuClick = { scope.launch { drawerState.close() } }
                 )
             }
-            composable(
-                route = "${Routes.PATTERN_VIEW}/{workId}",
-                arguments = listOf(navArgument("workId") { type = NavType.IntType })
-            ) {
+            composable("${Routes.PATTERN_VIEW}/{workId}",
+                arguments = listOf(navArgument("workId"){ type = NavType.IntType })
+            ) { backStackEntry ->
                 val patternViewModel: PatternViewModel = viewModel()
                 PatternViewScreen(
                     navController = navController,
+                    onMenuClick = { scope.launch { drawerState.open() } },
                     viewModel = patternViewModel
                 )
             }
-            // ★★★ 修正箇所：この呼び出しが、修正後のPatternDetailScreenと一致します ★★★
             composable(Routes.PATTERN_DETAIL) {
                 PatternDetailScreen(onBackClick = { navController.popBackStack() })
             }
-            // ... 他の画面
+            composable(Routes.ENGLISH_PATTERN) {
+                EnglishPatternScreen(navController = navController)
+            }
+            composable(Routes.PATTERN_EDIT) {
+                PatternEditScreen(navController = navController)
+            }
+            // ★★★ 新しいOCR画面のルートをここに追加 ★★★
+            composable(Routes.OCR_CAPTURE) {
+                OcrScreen(navController = navController)
+            }
         }
     }
 }

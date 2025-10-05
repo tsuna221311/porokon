@@ -1,88 +1,117 @@
 package com.example.myapplication.ui.screens
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.model.IncrementStitchRequest
 import com.example.myapplication.model.Work
+<<<<<<<< HEAD:app/src/main/java/com/example/myapplication/ui/screens/PatternViewModel.kt
+========
 import com.example.myapplication.network.ApiClient
+import com.example.myapplication.network.GCSApiClient
+>>>>>>>> 285eced38b1821a087fad6355c780d7f14e637b4:app/src/main/java/com/example/myapplication/ui/screens/PatternDetailViewModel.kt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 
+<<<<<<<< HEAD:app/src/main/java/com/example/myapplication/ui/screens/PatternViewModel.kt
+// PatternView画面のUIの状態
+data class PatternUiState(
+    val work: Work? = null,
+    val isLoading: Boolean = true
+)
+========
 class PatternDetailViewModel (
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val id: Int = savedStateHandle.get<Int>("workId") ?: 100
+>>>>>>>> 285eced38b1821a087fad6355c780d7f14e637b4:app/src/main/java/com/example/myapplication/ui/screens/PatternDetailViewModel.kt
 
-    private val _work = MutableStateFlow<Work?>(null)
-    val work: StateFlow<Work?> = _work
+class PatternViewModel(
+    savedStateHandle: SavedStateHandle // ナビゲーションから引数を受け取るために必要
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(PatternUiState())
+    val uiState: StateFlow<PatternUiState> = _uiState.asStateFlow()
+
+    // NavControllerから渡されたIDを取得
+    private val workId: Int = savedStateHandle.get<Int>("workId") ?: 0
 
     init {
-        fetchWork()
+        // 作品データを読み込む
+        loadWork(workId)
     }
 
-    private fun fetchWork(){
+    private fun loadWork(id: Int) {
         viewModelScope.launch {
+<<<<<<<< HEAD:app/src/main/java/com/example/myapplication/ui/screens/PatternViewModel.kt
+            _uiState.update { it.copy(isLoading = true) }
+            // TODO: ここで実際にデータベースから workId に対応する作品データを取得する
+            // このサンプルでは、ダミーデータを作成する
+            val dummyWork = Work(
+                id = id,
+                title = "サンプル編み図 (ID: $id)",
+                description = "基本の2目ゴム編み",
+                work_url = "",
+                rowIndex = 5,                // 修正: row_index -> rowIndex
+                stitchIndex = 0,             // 修正: stitch_index -> stitchIndex
+                is_completed = false,
+                completed_at = Instant.now().toString(), // 修正: .toString() を追加
+                created_at = Instant.now().toString(),
+                updated_at = Instant.now().toString()
+            )
+            _uiState.update { it.copy(work = dummyWork, isLoading = false) }
+========
             try {
                 val body = ApiClient.service.getOneWork(id).body()
-                if (body == null || body.title.isNullOrBlank()) {
-                    _work.value = Work(
-                        id = 0,
-                        title = "鯖には何もなかった",
-                        description = "完了！ - 2024/02/01",
-                        work_url = "",
-                        raw_index = 5,
-                        stitch_index = 0,
-                        is_completed = true,
-                        completed_at = Instant.now().toString(),
-                        created_at = Instant.now().toString(),
-                        updated_at = Instant.now().toString()
-                    )
-                } else {
                     _work.value = body
-//                    fetchCsv(body.work_url)
-                }
+                    fetchCsv(body?.work_url ?: "")
 
             } catch (e: Exception) {
                 Log.e("PatternViewModel", "エラー", e)
                 _work.value = null
             }
+>>>>>>>> 285eced38b1821a087fad6355c780d7f14e637b4:app/src/main/java/com/example/myapplication/ui/screens/PatternDetailViewModel.kt
         }
     }
 
-    public fun IncrementStitch(request: IncrementStitchRequest) {
-        viewModelScope.launch {
-            try {
-                val result = ApiClient.service.incrementStitch(id, request).body()
-                Log.d("DBResult", result.toString())
-                if (_work.value != null) {
-                    _work.value = _work.value!!.copy(
-                        raw_index = result?.raw_index ?: 10000,
-                        stitch_index = result?.stitch_index ?: 10000
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("PatternViewModel", "エラー", e)
-            }
+    // カウンターの段数を増やす
+    fun incrementRow() {
+        _uiState.update { currentState ->
+            currentState.work?.let { work ->
+                val newRowIndex = work.rowIndex + 1 // 修正: .row_index -> .rowIndex
+                // TODO: データベースの rowIndex も更新する
+                currentState.copy(work = work.copy(rowIndex = newRowIndex)) // 修正: row_index -> rowIndex
+            } ?: currentState
         }
     }
 
+<<<<<<<< HEAD:app/src/main/java/com/example/myapplication/ui/screens/PatternViewModel.kt
+    // カウンターの段数を減らす
+    fun decrementRow() {
+        _uiState.update { currentState ->
+            currentState.work?.let { work ->
+                val newRowIndex = (work.rowIndex - 1).coerceAtLeast(0) // 修正: .row_index -> .rowIndex
+                // TODO: データベースの rowIndex も更新する
+                currentState.copy(work = work.copy(rowIndex = newRowIndex)) // 修正: row_index -> rowIndex
+            } ?: currentState
+========
     private fun fetchCsv(signedUrl: String) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.service.downloadCsv(signedUrl)
+                val response = GCSApiClient.service.downloadCsv(signedUrl)
                 if (response.isSuccessful) {
                     val csvText = response.body()?.string() ?: ""
-                    println(csvText) // CSV の内容
+                    Log.d("csvText",csvText) // CSV の内容
                 } else {
-                    println("Failed: ${response.code()}")
+                    Log.d("csvText","Failed: ${response.message()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+>>>>>>>> 285eced38b1821a087fad6355c780d7f14e637b4:app/src/main/java/com/example/myapplication/ui/screens/PatternDetailViewModel.kt
         }
     }
 }

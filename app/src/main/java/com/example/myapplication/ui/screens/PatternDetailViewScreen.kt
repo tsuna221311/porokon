@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.myapplication.model.IncrementStitchRequest
 import com.example.myapplication.ui.components.counter.CompactCounterRow
 import com.example.myapplication.ui.navigation.Routes
 import com.example.myapplication.ui.theme.BgBase
@@ -22,29 +23,49 @@ import com.example.myapplication.ui.theme.PrimaryTeal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatternViewScreen(
+fun PatternDetailScreen(
     navController: NavController,
-    viewModel: PatternViewModel
+    onMenuClick: () -> Unit, // このパラメータは残しますが、現在は使いません
+    viewModel: PatternDetailViewModel
 ) {
-    // ViewModelからUIの状態を監視する
-    val uiState by viewModel.uiState.collectAsState()
 
+    val work by viewModel.work.collectAsState()
+
+    var rowCount by remember { mutableStateOf(3) }
+    var stitchCount by remember { mutableStateOf(5) }
     var selectedTab by remember { mutableStateOf(0) }
     var sensorConnected by remember { mutableStateOf(false) }
+
+    LaunchedEffect(work) {
+        if (work != null) {
+            rowCount = work?.raw_index ?: 0
+            stitchCount = work?.stitch_index ?: 0
+        }
+    }
+
+    LaunchedEffect(work) {
+        if (work != null) {
+            rowCount = work?.raw_index ?: 0
+            stitchCount = work?.stitch_index ?: 0
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = uiState.work?.title ?: "読み込み中...") },
+                title = { Text(text = work?.title ?: "nullでした") },
                 navigationIcon = {
+                    // サイドバーメニューではなく「戻る」ボタンに変更
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
+                    // 翻訳ボタンと修正ボタンを追加
                     IconButton(onClick = { navController.navigate(Routes.ENGLISH_PATTERN) }) {
                         Icon(Icons.Default.Translate, contentDescription = "翻訳")
                     }
+                    // 修正箇所：onClickに画面遷移を追加
                     IconButton(onClick = { navController.navigate(Routes.PATTERN_EDIT) }) {
                         Icon(Icons.Default.Edit, contentDescription = "修正")
                     }
@@ -52,83 +73,89 @@ fun PatternViewScreen(
             )
         }
     ) { paddingValues ->
-        // ローディング状態の表示
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .background(BgBase)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("表面") })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("裏面") })
             }
-        } else if (uiState.work != null) {
-            // データ取得成功時のUI
-            val work = uiState.work!!
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(Color.White, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("ここに編み図チャートが表示されます", color = Color.Gray)
+            }
             Column(
                 modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-                    .background(BgBase)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TabRow(selectedTabIndex = selectedTab) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("表面") })
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("裏面") })
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .background(Color.White, RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("ここに編み図チャートが表示されます", color = Color.Gray)
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // ★★★ UIの状態はViewModelから直接受け取り、操作はViewModelの関数を呼び出す ★★★
-                    CompactCounterRow(
-                        label = "現在の段数",
-                        count = work.row_index,
-                        onCountChange = { newCount ->
-                            if (newCount > work.row_index) viewModel.incrementRow() else viewModel.decrementRow()
-                        }
-                    )
-                    HorizontalDivider(color = BgBase, thickness = 1.dp)
-                    CompactCounterRow(
-                        label = "現在の目数",
-                        count = work.stitch_index,
-                        onCountChange = { /* TODO: 目数用のViewModel関数を呼び出す */ }
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {}, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)) { Text("段数モード") }
-                        Button(onClick = {}, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray)) { Text("目数モード", color = Color.DarkGray) }
+                CompactCounterRow(
+                    label = "現在の段数",
+                    count = rowCount,
+                    onCountChange = { newCount ->
+                        // Compose 内の状態更新
+                        rowCount = newCount
+                        // ViewModel の関数呼び出し
+                        viewModel.IncrementStitch(request = IncrementStitchRequest(
+                            raw_index = rowCount,
+                            stitch_index = stitchCount,
+                            is_completed = false
+                        ))
                     }
-                    HorizontalDivider(color = BgBase, thickness = 1.dp)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("センサー接続", fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
-                        Switch(
-                            checked = sensorConnected,
-                            onCheckedChange = { sensorConnected = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryTeal)
-                        )
+                )
+                Divider(color = BgBase, thickness = 1.dp)
+                CompactCounterRow(
+                    label = "現在の目数",
+                    count = stitchCount,
+                    onCountChange = { newCount ->
+                        // Compose 内の状態更新
+                        stitchCount = newCount
+                        // ViewModel の関数呼び出し
+                        viewModel.IncrementStitch(request = IncrementStitchRequest(
+                            raw_index = rowCount,
+                            stitch_index = stitchCount,
+                            is_completed = false
+                        ))
                     }
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {}, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)) { Text("段数モード") }
+                    Button(onClick = {}, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray)) { Text("目数モード", color = Color.DarkGray) }
+                }
+                Divider(color = BgBase, thickness = 1.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("センサー接続", fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
+                    Switch(
+                        checked = sensorConnected,
+                        onCheckedChange = { sensorConnected = it },
+                        colors = SwitchDefaults.colors(checkedThumbColor = PrimaryTeal)
+                    )
                 }
             }
         }
