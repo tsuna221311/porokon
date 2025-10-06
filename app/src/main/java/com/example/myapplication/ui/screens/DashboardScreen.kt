@@ -27,10 +27,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.model.Work
 import com.example.myapplication.ui.components.common.PatternListItem
-import com.example.myapplication.ui.navigation.Routes
+import com.example.myapplication.ui.navigation.Screen // 修正: Routes -> Screen
 import com.example.myapplication.ui.theme.PrimaryTeal
 import com.example.myapplication.ui.theme.SecondarySalmon
-import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun DashboardScreen(
@@ -79,6 +78,8 @@ fun ResultScreen(
         onResult = { bitmap ->
             if (bitmap != null) {
                 Toast.makeText(context, "写真が撮影されました", Toast.LENGTH_SHORT).show()
+                // NOTE: Here you might want to navigate to the confirmation screen
+                // navController.navigate(Screen.ConfirmPhoto.route)
             } else {
                 Toast.makeText(context, "撮影がキャンセルされました", Toast.LENGTH_SHORT).show()
             }
@@ -88,7 +89,8 @@ fun ResultScreen(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             if (isGranted) {
-                cameraLauncher.launch(null)
+                // For a full flow, navigate to the mode selection screen
+                navController.navigate(Screen.SelectMode.route)
             } else {
                 Toast.makeText(context, "カメラの権限が拒否されました", Toast.LENGTH_SHORT).show()
             }
@@ -109,14 +111,8 @@ fun ResultScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    when (PackageManager.PERMISSION_GRANTED) {
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) -> {
-                            cameraLauncher.launch(null)
-                        }
-                        else -> {
-                            permissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    }
+                    // We'll navigate to the start of the creation flow
+                    navController.navigate(Screen.SelectMode.route)
                 },
                 containerColor = PrimaryTeal
             ) {
@@ -149,7 +145,8 @@ fun ResultScreen(
                         icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
                         iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
                         onClick = {
-                            navController.navigate("${Routes.PATTERN_DETAIL}/${work.id}")
+                            // 修正: Routes -> Screen, and use the helper function
+                            navController.navigate(Screen.PatternView.createRoute(work.id))
                         }
                     )
                 }

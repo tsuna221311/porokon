@@ -2,6 +2,10 @@ package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -12,101 +16,173 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.myapplication.ui.components.counter.CompactCounterRow
-// ↓ あなたのプロジェクトの正しいパスに修正してください
-import com.example.myapplication.ui.navigation.Routes
+import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.BgBase
-// import com.example.myapplication.viewmodels.PatternViewModel // ViewModelのパスをインポートしてください
+import com.example.myapplication.ui.theme.PrimaryTeal
+
+// Sample pattern data (ideally from ViewModel)
+val patternData = List(8) {
+    listOf("k", "k", "p", "p", "k", "k", "p", "p", "k", "k", "p", "p")
+}
+val symbolMap = mapOf("k" to "|", "p" to "•")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternViewScreen(
     navController: NavController,
-    viewModel: PatternViewModel
+    viewModel: PatternDetailViewModel = viewModel()
 ) {
-    // UIの状態をViewModelから監視
     val uiState by viewModel.uiState.collectAsState()
-    // 選択中のタブの状態（0: 表面, 1: 裏面）
-    var selectedTab by remember { mutableStateOf(0) }
-    // センサー接続状態（このコードでは未使用ですが残しておきます）
-    var sensorConnected by remember { mutableStateOf(false) }
+    val work = uiState.work
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = uiState.work?.title ?: "読み込み中...") },
+                title = { Text(work?.title ?: "Loading...", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    // 翻訳画面へ
-                    IconButton(onClick = { navController.navigate(Routes.ENGLISH_PATTERN) }) {
-                        Icon(Icons.Default.Translate, contentDescription = "翻訳")
+                    IconButton(onClick = { navController.navigate(Screen.EnglishPattern.route) }) {
+                        Icon(Icons.Default.Translate, contentDescription = "Translate")
                     }
-                    // 編集画面へ
-                    IconButton(onClick = { navController.navigate(Routes.PATTERN_EDIT) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "修正")
+                    IconButton(onClick = { navController.navigate(Screen.PatternEdit.route) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }
                 }
             )
-        }
+        },
+        containerColor = BgBase
     ) { paddingValues ->
-        // データ読み込み中の表示
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-        } else if (uiState.work != null) {
-            // データ読み込み完了後の表示
-            val work = uiState.work!!
+        } else if (work != null) {
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
                     .fillMaxSize()
-                    .background(BgBase)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 表面・裏面を切り替えるタブ
-                TabRow(selectedTabIndex = selectedTab) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("表面") })
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("裏面") })
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Surface") })
+                    Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Reverse") })
                 }
 
-                // 編み図チャート表示エリア
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .background(Color.White, RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("ここに編み図チャートが表示されます", color = Color.Gray)
-                }
-
-                //カウンター表示エリア
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 現在の段数カウンター
-                    CompactCounterRow("現在の段数", work.rowIndex) { newCount -> // 修正: .row_index -> .rowIndex
-                        if (newCount > work.rowIndex) viewModel.incrementRow() else viewModel.decrementRow() // 修正
+                    PatternChart(
+                        pattern = patternData, // TODO: This should come from the ViewModel
+                        highlightedRow = work.raw_index, // Corrected to raw_index
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Current Row", fontWeight = FontWeight.SemiBold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CounterButton(text = "-") { viewModel.decrementRow() }
+                                Text(
+                                    text = (work.raw_index + 1).toString(), // Corrected to raw_index
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryTeal
+                                )
+                                CounterButton(text = "+") { viewModel.incrementRow() }
+                            }
+                        }
                     }
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(uiState.error ?: "An error occurred.")
+            }
+        }
+    }
+}
 
-                    HorizontalDivider(color = BgBase, thickness = 1.dp)
+@Composable
+fun PatternChart(
+    pattern: List<List<String>>,
+    highlightedRow: Int,
+    modifier: Modifier = Modifier
+) {
+    if (pattern.isEmpty()) return
 
-                    // 現在の目数カウンター
-                    CompactCounterRow("現在の目数", work.stitchIndex) { /* TODO */ } // 修正: .stitch_index -> .stitchIndex
+    val columnCount = pattern.first().size
+    val highlightColor = PrimaryTeal.copy(alpha = 0.2f)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columnCount),
+            userScrollEnabled = false
+        ) {
+            itemsIndexed(pattern.flatten()) { index, symbol ->
+                val rowIndex = index / columnCount
+                val backgroundColor = if (rowIndex == highlightedRow) {
+                    highlightColor
+                } else {
+                    Color.Transparent
+                }
+
+                Box(
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .background(backgroundColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = symbolMap[symbol] ?: "?",
+                        color = Color.Gray,
+                        fontSize = 18.sp
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CounterButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.size(44.dp),
+        shape = CircleShape,
+        contentPadding = PaddingValues(0.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Text(text, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

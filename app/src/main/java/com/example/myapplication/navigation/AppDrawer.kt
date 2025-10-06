@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
@@ -22,16 +21,35 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.navigation.Routes
+// 修正: Routes の代わりに Screen をインポート
+import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.SecondarySalmon
 
 @Composable
 fun AppDrawer(onDestinationClicked: (String) -> Unit) {
     ModalDrawerSheet {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "あみナビ", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = SecondarySalmon, modifier = Modifier.padding(bottom = 16.dp))
-            DrawerItem(label = "ダッシュボード", icon = Icons.Default.Dashboard, route = Routes.DASHBOARD, onClick = onDestinationClicked)
-            DrawerItem(label = "マイ編み図", icon = Icons.Default.Book, route = Routes.MY_PATTERNS, onClick = onDestinationClicked)
+            Text(
+                text = "あみナビ",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = SecondarySalmon,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            // 修正: Routes.DASHBOARD -> Screen.Dashboard.route
+            DrawerItem(
+                label = "ダッシュボード",
+                icon = Icons.Default.Dashboard,
+                route = Screen.Dashboard.route,
+                onClick = onDestinationClicked
+            )
+            // 修正: Routes.MY_PATTERNS -> Screen.MyPatterns.route
+            DrawerItem(
+                label = "マイ編み図",
+                icon = Icons.Default.Book,
+                route = Screen.MyPatterns.route,
+                onClick = onDestinationClicked
+            )
         }
     }
 }
@@ -50,4 +68,3 @@ fun DrawerItem(label: String, icon: ImageVector, route: String, onClick: (String
         Text(label)
     }
 }
-
