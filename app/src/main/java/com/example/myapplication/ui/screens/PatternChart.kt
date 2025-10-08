@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,15 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.theme.PrimaryTeal
 
 /**
  * 編み図のグリッドを表示するための、再利用可能なUIコンポーネント。
- * @param pattern 表示する編み図の2次元リストデータ。
- * @param highlightedRow ハイライト表示する行のインデックス。
- * @param modifier このコンポーザブルに適用するModifier。
  */
 @Composable
 fun PatternChart(
@@ -30,12 +29,12 @@ fun PatternChart(
     highlightedRow: Int,
     modifier: Modifier = Modifier
 ) {
-    // CSV表記と画面に表示する記号の対応表
+    // ★★★ 修正: 画像の記号に合わせて表示を更新 ★★★
     val symbolMap = mapOf(
-        "k" to "|", "p" to "•",
-        "k2tog" to "╱", "ssk" to "╲",
-        "yo" to "○", "c4f" to "交", "c4b" to "差"
-        // 他の記号も必要に応じてここに追加します
+        "k" to "",       // 表目 (空白)
+        "p" to "—",      // 裏目 (横棒)
+        "k2tog" to "╱",   // 右上2目一度
+        "ssk" to "╲"     // 左上2目一度
     )
     val highlightColor = PrimaryTeal.copy(alpha = 0.2f)
 
@@ -43,6 +42,7 @@ fun PatternChart(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
             .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -52,7 +52,7 @@ fun PatternChart(
             val columnCount = pattern.firstOrNull()?.size ?: 1
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columnCount),
-                userScrollEnabled = true // 長い編み図はスクロールできるようにする
+                userScrollEnabled = true
             ) {
                 itemsIndexed(pattern.flatten()) { index, symbol ->
                     val rowIndex = index / columnCount
@@ -64,16 +64,18 @@ fun PatternChart(
 
                     Box(
                         modifier = Modifier
-                            .aspectRatio(1f) // セルを正方形に保つ
-                            .background(backgroundColor),
+                            .aspectRatio(1f)
+                            .background(backgroundColor)
+                            .border(0.5.dp, Color.LightGray),
                         contentAlignment = Alignment.Center
                     ) {
-                        // '^' は複数マス記号の一部なので、何も表示しない
-                        if (symbol != "^") {
+                        // '^' (複数マス記号の一部) と '-' (空白マス) は何も表示しない
+                        if (symbol != "^" && symbol != "-") {
                             Text(
-                                text = symbolMap[symbol] ?: symbol, // 不明な記号はそのまま表示
+                                text = symbolMap[symbol] ?: symbol,
                                 color = Color.DarkGray,
-                                fontSize = 18.sp
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }

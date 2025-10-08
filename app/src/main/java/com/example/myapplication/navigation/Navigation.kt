@@ -7,21 +7,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.myapplication.ui.screens.ConfirmPhotoScreen
-import com.example.myapplication.ui.screens.DashboardScreen
-import com.example.myapplication.ui.screens.EnglishPatternScreen
-import com.example.myapplication.ui.screens.MyPatternsScreen
-import com.example.myapplication.ui.screens.OcrScreen
-import com.example.myapplication.ui.screens.PatternEditScreen
-import com.example.myapplication.ui.screens.PatternViewScreen
-import com.example.myapplication.ui.screens.SavePatternScreen
-import com.example.myapplication.ui.screens.SelectModeScreen
+import com.example.myapplication.ui.screens.*
 
 /**
  * アプリ内の画面遷移ルートを定義する Sealed Class。
- * 文字列を直接使うよりもタイプミスを防げて安全です。
- *
- * @param route ルートのパス
  */
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
@@ -45,8 +34,6 @@ sealed class Screen(val route: String) {
 
 /**
  * アプリ全体のナビゲーショングラフを定義するComposable。
- * @param navController アプリケーションのナビゲーションを制御します。
- * @param onMenuClick サイドメニューを開くためのアクションを伝達します。
  */
 @Composable
 fun AppNavigation(
@@ -74,9 +61,10 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
+            // ★★★ 修正: viewModelの引数を削除 ★★★
+            // ダミーデータを表示するバージョンにはviewModelは不要
             PatternViewScreen(
-                navController = navController,
-                viewModel = viewModel()
+                navController = navController
             )
         }
 

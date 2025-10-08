@@ -2,7 +2,7 @@ package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape // ★★★ このimport文を追加 ★★★
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -21,104 +21,112 @@ import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
 
+// ★★★ 画像に基づいたダミーデータを追加 ★★★
+// 12段 x 8目の編み図
+val dummyPatternFromImage = listOf(
+    // 12段目 (一番上)
+    listOf("p", "p", "-", "-", "k", "k", "k", "-"),
+    // 11段目
+    listOf("p", "p", "-", "-", "k2tog", "^", "k", "-"),
+    // 10段目
+    listOf("p", "p", "-", "-", "k", "k", "k", "k"),
+    // 9段目
+    listOf("p", "p", "-", "ssk", "^", "k", "k", "k"),
+    // 8段目
+    listOf("p", "p", "-", "k", "k", "k", "k", "k"),
+    // 7段目
+    listOf("p", "p", "-", "k", "k2tog", "^", "k", "k"),
+    // 6段目
+    listOf("p", "p", "ssk", "^", "k", "k", "k", "k"),
+    // 5段目
+    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
+    // 4段目
+    listOf("p", "p", "p", "-", "k", "k2tog", "^", "k"),
+    // 3段目
+    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
+    // 2段目
+    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
+    // 1段目 (一番下)
+    listOf("p", "p", "p", "-", "k", "k", "k", "k")
+).reversed() // 実際の編み図は下から上なので、リストを逆順にする
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternViewScreen(
-    navController: NavController,
-    viewModel: PatternDetailViewModel = viewModel()
+    navController: NavController
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val work = uiState.work
     var selectedTabIndex by remember { mutableStateOf(0) }
+    // ダミーデータ用のカウンター状態
+    var highlightedRow by remember { mutableStateOf(3) } // 4段目を初期ハイライト
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.patternName ?: work?.title ?: "読み込み中...", fontWeight = FontWeight.Bold) },
+                title = { Text("編み図プレビュー (ダミー)", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        // TODO: Implement navigation
-                    }) {
-                        Icon(Icons.Default.Translate, contentDescription = "翻訳")
-                    }
-                    if (work != null) {
-                        IconButton(onClick = { navController.navigate(Screen.PatternEdit.createRoute(work.id)) }) {
-                            Icon(Icons.Default.Edit, contentDescription = "修正")
-                        }
-                    }
+                    // ダミー表示中はボタンを無効化
+                    IconButton(onClick = {}, enabled = false) { Icon(Icons.Default.Translate, contentDescription = "翻訳") }
+                    IconButton(onClick = {}, enabled = false) { Icon(Icons.Default.Edit, contentDescription = "修正") }
                 }
             )
         },
         containerColor = BgBase
     ) { paddingValues ->
-        when {
-            uiState.isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("表面") })
+                Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("裏面") })
             }
-            work != null -> {
-                Column(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // ★★★ 修正: ダミーデータをPatternChartに渡す ★★★
+                PatternChart(
+                    pattern = dummyPatternFromImage,
+                    highlightedRow = highlightedRow,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    TabRow(selectedTabIndex = selectedTabIndex) {
-                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("表面") })
-                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("裏面") })
-                    }
-
-                    Column(
+                    Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        PatternChart(
-                            pattern = uiState.patternData,
-                            highlightedRow = work.raw_index,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        Text("現在の段数", fontWeight = FontWeight.SemiBold)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("現在の段数", fontWeight = FontWeight.SemiBold)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    CounterButton(text = "-") { viewModel.decrementRow() }
-                                    Text(
-                                        text = (work.raw_index + 1).toString(),
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PrimaryTeal
-                                    )
-                                    CounterButton(text = "+") { viewModel.incrementRow() }
-                                }
-                            }
+                            CounterButton(text = "-") { if(highlightedRow > 0) highlightedRow-- }
+                            Text(
+                                text = (highlightedRow + 1).toString(),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryTeal
+                            )
+                            CounterButton(text = "+") { if(highlightedRow < dummyPatternFromImage.size - 1) highlightedRow++ }
                         }
                     }
-                }
-            }
-            else -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(uiState.error ?: "エラーが発生しました。")
                 }
             }
         }
