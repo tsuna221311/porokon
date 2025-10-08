@@ -36,26 +36,40 @@ class OcrViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = OcrUiState.Loading
             try {
-                val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open input stream")
+                // URIから画像データを読み込み、API送信用に変換
+                val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open input stream from URI.")
                 val requestBody = inputStream.readBytes().toRequestBody("image/jpeg".toMediaTypeOrNull())
 
+                // ファイル名を取得
                 val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     cursor.moveToFirst()
                     cursor.getString(nameIndex)
                 } ?: "image.jpg"
 
+                // サーバーが受け取れる形式(Multipart)の部品を作成
                 val multipartBody = MultipartBody.Part.createFormData("file", fileName, requestBody)
 
+                // APIクライアントを呼び出して、実際に画像をアップロード
                 val response = ApiClient.service.uploadImage(multipartBody)
                 val responseBody = response.body()
 
+                // APIからのレスポンスを安全に処理
                 if (response.isSuccessful && responseBody != null) {
-                    _uiState.value = OcrUiState.Success(responseBody.csv_url)
+                    // csv_urlがnullでないことを確認してからSuccess状態にする
+                    val csvUrl = responseBody.csv_url
+                    if (!csvUrl.isNullOrBlank()) {
+                        _uiState.value = OcrUiState.Success(csvUrl)
+                    } else {
+                        // 通信は成功したが、期待したURLが含まれていなかった場合
+                        throw Exception("API response is successful but csv_url is null or empty.")
+                    }
                 } else {
+                    // APIがエラーを返した場合
                     throw Exception("Upload failed: ${response.message()}")
                 }
             } catch (e: Exception) {
+                // 通信失敗など、何か問題が起きたらUIを「エラー」状態にする
                 Log.e("OcrViewModel", "Error uploading image", e)
                 _uiState.value = OcrUiState.Error("画像のアップロードに失敗しました。")
             }
