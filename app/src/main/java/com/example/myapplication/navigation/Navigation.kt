@@ -64,7 +64,9 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
-            PatternDetailScreen(
+            // ★★★ 修正: PatternDetailScreen -> PatternViewScreen ★★★
+            // 「PatternViewScreenが使われていない」という警告を解消するため、ここで正しく呼び出す
+            PatternViewScreen(
                 navController = navController,
                 viewModel = viewModel()
             )

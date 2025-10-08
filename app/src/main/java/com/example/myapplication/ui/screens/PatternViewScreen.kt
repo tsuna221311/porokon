@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // ★★★ このimport文を追加 ★★★
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,84 +34,90 @@ fun PatternViewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(work?.title ?: "Loading...", fontWeight = FontWeight.Bold) },
+                title = { Text(work?.title ?: "読み込み中...", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.EnglishPattern.route) }) {
-                        Icon(Icons.Default.Translate, contentDescription = "Translate")
+                    IconButton(onClick = { /* TODO: 翻訳画面へ遷移 */ }) {
+                        Icon(Icons.Default.Translate, contentDescription = "翻訳")
                     }
-                    IconButton(onClick = { navController.navigate(Screen.PatternEdit.route) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    if (work != null) {
+                        IconButton(onClick = { navController.navigate(Screen.PatternEdit.createRoute(work.id)) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "修正")
+                        }
                     }
                 }
             )
         },
         containerColor = BgBase
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (work != null) {
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-            ) {
-                TabRow(selectedTabIndex = selectedTabIndex) {
-                    Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Surface") })
-                    Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Reverse") })
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-
+            }
+            work != null -> {
                 Column(
                     modifier = Modifier
+                        .padding(paddingValues)
                         .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    PatternChart(
-                        pattern = uiState.patternData,
-                        highlightedRow = work.raw_index,
-                        modifier = Modifier.weight(1f)
-                    )
+                    TabRow(selectedTabIndex = selectedTabIndex) {
+                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("表面") })
+                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("裏面") })
+                    }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        PatternChart(
+                            pattern = uiState.patternData,
+                            highlightedRow = work.raw_index,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Text("Current Row", fontWeight = FontWeight.SemiBold)
                             Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                CounterButton(text = "-") { viewModel.decrementRow() }
-                                Text(
-                                    text = (work.raw_index + 1).toString(),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryTeal
-                                )
-                                CounterButton(text = "+") { viewModel.incrementRow() }
+                                Text("現在の段数", fontWeight = FontWeight.SemiBold)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    CounterButton(text = "-") { viewModel.decrementRow() }
+                                    Text(
+                                        text = (work.raw_index + 1).toString(),
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryTeal
+                                    )
+                                    CounterButton(text = "+") { viewModel.incrementRow() }
+                                }
                             }
                         }
                     }
                 }
             }
-        } else {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(uiState.error ?: "An error occurred.")
+            else -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(uiState.error ?: "エラーが発生しました。")
+                }
             }
         }
     }
@@ -130,3 +135,4 @@ private fun CounterButton(text: String, onClick: () -> Unit) {
         Text(text, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
