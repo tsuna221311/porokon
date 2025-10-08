@@ -46,7 +46,7 @@ class RegisterWorkViewModel(
                 val request = RegisterWork(
                     title = title,
                     description = description,
-                    work_url = workUrl
+                    file_name = workUrl
                 )
 
                 // APIクライアントを呼び出して、実際にサーバーに作品を登録する

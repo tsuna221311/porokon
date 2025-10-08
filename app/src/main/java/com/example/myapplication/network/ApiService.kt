@@ -65,8 +65,7 @@ interface ApiService {
         @Part file: MultipartBody.Part
     ): Response<CsvConversions>
 
-    // ★★★ PatternEditViewModelで必要な定義を追加 ★★★
     @Multipart
-    @POST("v1/csv-uploads") // 仮のエンドポイント名です。実際のAPI仕様に合わせてください。
+    @POST("v1/csv-uploads")
     suspend fun uploadCsv(@Part file: MultipartBody.Part): Response<CsvConversions>
 }

@@ -44,7 +44,7 @@ class PatternDetailViewModel(
                     val work = response.body()
                     _uiState.update { it.copy(work = work) }
                     // 2. 取得したURLで編み図(CSV)をダウンロード
-                    work?.work_url?.let { url ->
+                    work?.file_name?.let { url ->
                         if(url.isNotBlank()) fetchCsv(url)
                     } ?: _uiState.update { it.copy(isLoading = false) } // URLがなければロード完了
                 } else {

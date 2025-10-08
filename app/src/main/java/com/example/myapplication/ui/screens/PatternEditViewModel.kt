@@ -50,12 +50,12 @@ class PatternEditViewModel(
                 // 1. APIで作品情報を取得し、編み図(CSV)のURLを得る
                 val workResponse = ApiClient.service.getOneWork(id)
                 val workBody = workResponse.body()
-                if (!workResponse.isSuccessful || workBody == null || workBody.work_url.isBlank()) {
+                if (!workResponse.isSuccessful || workBody == null || workBody.file_name.isBlank()) {
                     throw Exception("Failed to get work info or work_url is empty")
                 }
 
                 // 2. GCSからCSVデータをダウンロードする
-                val csvResponse = GCSApiClient.service.downloadCsv(workBody.work_url)
+                val csvResponse = GCSApiClient.service.downloadCsv(workBody.file_name)
                 val csvBody = csvResponse.body()
                 if (!csvResponse.isSuccessful || csvBody == null) {
                     throw Exception("Failed to download CSV data")
@@ -128,7 +128,7 @@ class PatternEditViewModel(
 
                 // 3. APIを呼び出して、新しいCSVをアップロードし、そのURLを取得
                 val uploadResponse = ApiClient.service.uploadCsv(multipartBody)
-                val newUrl = uploadResponse.body()?.csv_url ?: throw Exception("CSV upload failed")
+                val newUrl = uploadResponse.body()?.file_name ?: throw Exception("CSV upload failed")
 
                 // 4. 新しく取得したURLで、作品情報を更新するAPIを呼び出す
                 val updateRequest = UpdateWorkRequest(work_url = newUrl)

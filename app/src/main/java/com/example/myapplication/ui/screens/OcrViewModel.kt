@@ -57,7 +57,7 @@ class OcrViewModel : ViewModel() {
                 // APIからのレスポンスを安全に処理
                 if (response.isSuccessful && responseBody != null) {
                     // csv_urlがnullでないことを確認してからSuccess状態にする
-                    val csvUrl = responseBody.csv_url
+                    val csvUrl = responseBody.file_name
                     if (!csvUrl.isNullOrBlank()) {
                         _uiState.value = OcrUiState.Success(csvUrl)
                     } else {

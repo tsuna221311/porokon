@@ -6,7 +6,7 @@ import java.time.Instant
 data class Work(
     val id: Int,
     val title: String,
-    val work_url: String,
+    val file_name: String,
     val raw_index: Int,
     val stitch_index: Int,
     val is_completed: Boolean,
