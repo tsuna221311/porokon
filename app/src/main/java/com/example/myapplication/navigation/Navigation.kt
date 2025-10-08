@@ -9,6 +9,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.myapplication.ui.screens.*
 
+/**
+ * アプリ内の画面遷移ルートを定義する Sealed Class。
+ * 文字列を直接使うよりもタイプミスを防げて安全です。
+ */
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object MyPatterns : Screen("my_patterns")
@@ -20,21 +24,27 @@ sealed class Screen(val route: String) {
     object ConfirmPhoto : Screen("confirm_photo/{photoUri}") {
         fun createRoute(photoUri: String) = "confirm_photo/$photoUri"
     }
-    // ★★★ このオブジェクトを修正 ★★★
     object SavePattern : Screen("save_pattern/{fileUrl}") {
         fun createRoute(fileUrl: String) = "save_pattern/$fileUrl"
     }
     object EnglishPattern : Screen("english_pattern")
-    object PatternEdit : Screen("edit_pattern")
+    object PatternEdit : Screen("pattern_edit/{workId}") {
+        fun createRoute(workId: Int) = "pattern_edit/$workId"
+    }
 }
 
+/**
+ * アプリ全体のナビゲーショングラフを定義するComposable。
+ * @param navController アプリケーションのナビゲーションを制御します。
+ * @param onMenuClick サイドメニューを開くためのアクションを伝達します。
+ */
 @Composable
 fun AppNavigation(
     navController: NavHostController,
     onMenuClick: () -> Unit
 ) {
     NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
-        // (NavHostの中身は変更なし)
+
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 navController = navController,
@@ -42,12 +52,14 @@ fun AppNavigation(
                 dashboardViewModel = viewModel()
             )
         }
+
         composable(Screen.MyPatterns.route) {
             MyPatternsScreen(
                 navController = navController,
                 onMenuClick = onMenuClick
             )
         }
+
         composable(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
@@ -57,6 +69,8 @@ fun AppNavigation(
                 viewModel = viewModel()
             )
         }
+
+        // --- 新規作成フロー ---
         composable(Screen.SelectMode.route) {
             SelectModeScreen(
                 onNavigateToCamera = { navController.navigate(Screen.OcrCapture.route) },
@@ -91,10 +105,15 @@ fun AppNavigation(
                 }
             )
         }
+
+        // --- その他 ---
         composable(Screen.EnglishPattern.route) {
             EnglishPatternScreen(navController = navController)
         }
-        composable(Screen.PatternEdit.route) {
+        composable(
+            route = Screen.PatternEdit.route,
+            arguments = listOf(navArgument("workId") { type = NavType.IntType })
+        ) {
             PatternEditScreen(navController = navController)
         }
     }

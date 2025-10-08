@@ -13,44 +13,42 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.myapplication.ui.navigation.Screen
-import com.example.myapplication.ui.screens.RegisterWorkUiState.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfirmPhotoScreen(
     navController: NavController,
     photoUri: String?,
-    viewModel: RegisterWorkViewModel = viewModel()
+    viewModel: OcrViewModel = viewModel()
 ) {
+    // ナビゲーションから渡されたURI文字列をUriオブジェクトに変換
     val uri = remember(photoUri) { photoUri?.let { Uri.parse(it) } }
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // uiState の変化を監視し、画面遷移やエラー表示を行う
+    // ViewModelの状態が変化したときの副作用（画面遷移やToast表示）を処理
     LaunchedEffect(uiState) {
-        when (uiState) {
-            is Success -> {
-                Toast.makeText(context, "作品登録が完了しました！", Toast.LENGTH_SHORT).show()
-                navController.popBackStack() // 登録完了後に前の画面に戻る
+        when (val state = uiState) {
+            is OcrUiState.Success -> {
+                Toast.makeText(context, "アップロード成功！", Toast.LENGTH_SHORT).show()
+                viewModel.resetState() // 状態をリセット
+                val encodedUrl = Uri.encode(state.fileUrl)
+                // 成功したら、返ってきたURLを付けて作品保存画面へ遷移
+                navController.navigate(Screen.SavePattern.createRoute(encodedUrl))
             }
-            is Error -> {
-                val message = (uiState as Error).message
-                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            is OcrUiState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                viewModel.resetState() // 状態をリセット
             }
-            Loading, Standby -> {
-                // Loading, Standby時は何もしない
-            }
+            else -> { /* Standby, Loading時には何もしない */ }
         }
     }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("写真の確認") }) }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            // 撮影された写真を画面に表示
             if (uri != null) {
                 AsyncImage(
                     model = uri,
@@ -60,40 +58,39 @@ fun ConfirmPhotoScreen(
                         .fillMaxWidth()
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("写真がありません")
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("画像の読み込みに失敗しました。")
                 }
             }
 
+            // 「撮り直す」と「OK」ボタン
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
+                // 「撮り直す」ボタン
                 Button(
                     onClick = { navController.popBackStack() },
-                    enabled = uiState !is Loading
+                    enabled = uiState !is OcrUiState.Loading
                 ) {
                     Text("撮り直す")
                 }
 
+                // 「OK」ボタン
                 Button(
                     onClick = {
-                        // OKボタンで作品登録
-                        viewModel.registerNewWork(
-                            title = "作品タイトル",
-                            description = "作品説明"
-                        )
+                        if (uri != null) {
+                            // ViewModelに画像アップロードを依頼
+                            viewModel.uploadImage(uri, context.contentResolver)
+                        } else {
+                            Toast.makeText(context, "画像がありません。", Toast.LENGTH_SHORT).show()
+                        }
                     },
-                    enabled = uiState !is Loading
+                    enabled = uiState !is OcrUiState.Loading && uri != null
                 ) {
-                    if (uiState is Loading) {
+                    if (uiState is OcrUiState.Loading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
                         Text("OK")

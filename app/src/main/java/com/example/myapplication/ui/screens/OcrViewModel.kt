@@ -1,6 +1,8 @@
 package com.example.myapplication.ui.screens
 
+import android.content.ContentResolver
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,80 +10,62 @@ import com.example.myapplication.network.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
-// UIの状態を表す
+/**
+ * OCR（画像アップロード）フローのUIが取りうる状態を定義します。
+ */
 sealed interface OcrUiState {
-    object Idle : OcrUiState
-    data class ImageCaptured(val uri: Uri) : OcrUiState
-    object Processing : OcrUiState
-    data class TextExtracted(val text: String) : OcrUiState
-    data class CsvGenerated(val csv: String, val patternName: String) : OcrUiState
+    object Standby : OcrUiState
+    object Loading : OcrUiState
+    data class Success(val fileUrl: String) : OcrUiState
     data class Error(val message: String) : OcrUiState
 }
 
 class OcrViewModel : ViewModel() {
-
-    private val _uiState = MutableStateFlow<OcrUiState>(OcrUiState.Idle)
+    private val _uiState = MutableStateFlow<OcrUiState>(OcrUiState.Standby)
     val uiState: StateFlow<OcrUiState> = _uiState.asStateFlow()
 
-    fun onImageCaptured(uri: Uri?) {
-        if (uri != null) {
-            _uiState.update { OcrUiState.ImageCaptured(uri) }
-        } else {
-            _uiState.update { OcrUiState.Error("写真の撮影に失敗しました。") }
-        }
-    }
-
-    fun retakePhoto() {
-        _uiState.update { OcrUiState.Idle }
-    }
-
-    fun processImageToText(uri: Uri) {
+    /**
+     * URIで指定された画像をAPIサーバーにアップロードします。
+     */
+    fun uploadImage(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch {
-            _uiState.update { OcrUiState.Processing }
+            _uiState.value = OcrUiState.Loading
             try {
-                // --- 擬似OCR処理 ---
-                kotlinx.coroutines.delay(2000)
-                val dummyText = "Row 1: *K2, P2; rep from * to end.\nRow 2: *K2, P2; rep from * to end."
-                _uiState.update { OcrUiState.TextExtracted(dummyText) }
+                val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open input stream")
+                val requestBody = inputStream.readBytes().toRequestBody("image/jpeg".toMediaTypeOrNull())
+
+                val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    cursor.moveToFirst()
+                    cursor.getString(nameIndex)
+                } ?: "image.jpg"
+
+                val multipartBody = MultipartBody.Part.createFormData("file", fileName, requestBody)
+
+                val response = ApiClient.service.uploadImage(multipartBody)
+                val responseBody = response.body()
+
+                if (response.isSuccessful && responseBody != null) {
+                    _uiState.value = OcrUiState.Success(responseBody.csv_url)
+                } else {
+                    throw Exception("Upload failed: ${response.message()}")
+                }
             } catch (e: Exception) {
-                _uiState.update { OcrUiState.Error("テキスト抽出に失敗しました。") }
+                Log.e("OcrViewModel", "Error uploading image", e)
+                _uiState.value = OcrUiState.Error("画像のアップロードに失敗しました。")
             }
         }
-    }
-
-    fun onTextConfirmed(text: String) {
-        val dummyCsv = "k,k,p,p,k,k,p,p\nk,k,p,p,k,k,p,p"
-        _uiState.update { OcrUiState.CsvGenerated(dummyCsv, "新しい作品") }
     }
 
     /**
-     * CSVをサーバーにアップロードする（仮のRetrofit呼び出し）
+     * UIの状態を初期状態に戻します。
      */
-    fun uploadCsv(csv: String, patternName: String) {
-        viewModelScope.launch {
-            _uiState.update { OcrUiState.Processing }
-            try {
-                // CSVをRequestBodyに変換
-                val requestBody = csv.toRequestBody("text/csv".toMediaTypeOrNull())
-                val multipart = MultipartBody.Part.createFormData("file", "$patternName.csv", requestBody)
-
-                // 仮の Retrofit 呼び出し
-                val response = ApiClient.service.uploadCsv(multipart) // ★ Retrofit側で uploadCsv を定義しておく
-                if (response.isSuccessful) {
-                    _uiState.update { OcrUiState.CsvGenerated(csv, patternName) }
-                } else {
-                    _uiState.update { OcrUiState.Error("CSVのアップロードに失敗しました。") }
-                }
-            } catch (e: Exception) {
-                Log.e("OcrViewModel", "CSVアップロード失敗", e)
-                _uiState.update { OcrUiState.Error("CSVのアップロードに失敗しました。") }
-            }
-        }
+    fun resetState() {
+        _uiState.value = OcrUiState.Standby
     }
 }
