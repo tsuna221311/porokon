@@ -20,6 +20,9 @@ import com.example.myapplication.ui.theme.PrimaryTeal
 
 /**
  * 編み図のグリッドを表示するための、再利用可能なUIコンポーネント。
+ * @param pattern 表示する編み図の2次元リストデータ。
+ * @param highlightedRow ハイライト表示する行のインデックス。
+ * @param modifier このコンポーザブルに適用するModifier。
  */
 @Composable
 fun PatternChart(
@@ -27,7 +30,13 @@ fun PatternChart(
     highlightedRow: Int,
     modifier: Modifier = Modifier
 ) {
-    val symbolMap = mapOf("k" to "|", "p" to "•")
+    // CSV表記と画面に表示する記号の対応表
+    val symbolMap = mapOf(
+        "k" to "|", "p" to "•",
+        "k2tog" to "╱", "ssk" to "╲",
+        "yo" to "○", "c4f" to "交", "c4b" to "差"
+        // 他の記号も必要に応じてここに追加します
+    )
     val highlightColor = PrimaryTeal.copy(alpha = 0.2f)
 
     Box(
@@ -38,12 +47,12 @@ fun PatternChart(
         contentAlignment = Alignment.Center
     ) {
         if (pattern.isEmpty()) {
-            Text("Pattern data is not available.", color = Color.Gray)
+            Text("編み図データがありません", color = Color.Gray)
         } else {
             val columnCount = pattern.firstOrNull()?.size ?: 1
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columnCount),
-                userScrollEnabled = true
+                userScrollEnabled = true // 長い編み図はスクロールできるようにする
             ) {
                 itemsIndexed(pattern.flatten()) { index, symbol ->
                     val rowIndex = index / columnCount
@@ -55,15 +64,18 @@ fun PatternChart(
 
                     Box(
                         modifier = Modifier
-                            .aspectRatio(1f)
+                            .aspectRatio(1f) // セルを正方形に保つ
                             .background(backgroundColor),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = symbolMap[symbol] ?: symbol,
-                            color = Color.Gray,
-                            fontSize = 18.sp
-                        )
+                        // '^' は複数マス記号の一部なので、何も表示しない
+                        if (symbol != "^") {
+                            Text(
+                                text = symbolMap[symbol] ?: symbol, // 不明な記号はそのまま表示
+                                color = Color.DarkGray,
+                                fontSize = 18.sp
+                            )
+                        }
                     }
                 }
             }

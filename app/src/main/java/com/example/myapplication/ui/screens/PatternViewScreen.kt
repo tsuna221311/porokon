@@ -34,14 +34,16 @@ fun PatternViewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(work?.title ?: "読み込み中...", fontWeight = FontWeight.Bold) },
+                title = { Text(uiState.patternName ?: work?.title ?: "読み込み中...", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: 翻訳画面へ遷移 */ }) {
+                    IconButton(onClick = {
+                        // TODO: Implement navigation
+                    }) {
                         Icon(Icons.Default.Translate, contentDescription = "翻訳")
                     }
                     if (work != null) {
@@ -135,4 +137,3 @@ private fun CounterButton(text: String, onClick: () -> Unit) {
         Text(text, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
-

@@ -13,10 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 data class PatternUiState(
     val work: Work? = null,
     val patternData: List<List<String>> = emptyList(),
+    val patternName: String? = null, // CSVから読み取った名前用
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -38,18 +41,16 @@ class PatternDetailViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // 1. APIで作品情報を取得
                 val response = ApiClient.service.getOneWork(id)
                 if (response.isSuccessful) {
                     val work = response.body()
                     _uiState.update { it.copy(work = work) }
-                    // 2. 取得したURLで編み図(CSV)をダウンロード
+
+                    // ★★★ 修正: work_url -> file_name ★★★
                     work?.file_name?.let { url ->
                         if(url.isNotBlank()) fetchCsv(url)
                     } ?: _uiState.update { it.copy(isLoading = false) } // URLがなければロード完了
-                } else {
-                    throw Exception("Failed to load work data")
-                }
+                } else { throw HttpException(response) }
             } catch (e: Exception) {
                 Log.e("PatternDetailViewModel", "Error loading work", e)
                 _uiState.update { it.copy(error = "作品の読み込みに失敗しました。", isLoading = false) }
@@ -63,11 +64,30 @@ class PatternDetailViewModel(
                 val response = GCSApiClient.service.downloadCsv(signedUrl)
                 if (response.isSuccessful) {
                     val csvText = response.body()?.string() ?: ""
-                    val parsedData = csvText.lines().mapNotNull { if (it.isNotBlank()) it.split(",") else null }
-                    _uiState.update { it.copy(patternData = parsedData, isLoading = false) }
-                } else {
-                    throw Exception("Failed to download CSV")
-                }
+
+                    val lines = csvText.lines()
+                    val metadata = mutableMapOf<String, String>()
+                    val gridData = mutableListOf<List<String>>()
+
+                    lines.forEach { line ->
+                        if (line.startsWith("#")) {
+                            val parts = line.removePrefix("#").split(',', limit = 2)
+                            if (parts.size == 2) {
+                                metadata[parts[0].trim()] = parts[1].trim()
+                            }
+                        } else if (line.isNotBlank()) {
+                            gridData.add(line.split(','))
+                        }
+                    }
+
+                    _uiState.update {
+                        it.copy(
+                            patternData = gridData,
+                            patternName = metadata["name"],
+                            isLoading = false
+                        )
+                    }
+                } else { throw HttpException(response) }
             } catch (e: Exception) {
                 Log.e("PatternDetailViewModel", "Error fetching CSV", e)
                 _uiState.update { it.copy(error = "編み図データの読み込みに失敗しました。", isLoading = false) }
@@ -75,7 +95,9 @@ class PatternDetailViewModel(
         }
     }
 
-    // サーバーにカウンターの更新を通知する共通関数
+    /**
+     * サーバーにカウンターの更新を通知する共通関数
+     */
     private fun updateStitchCount(work: Work, newRow: Int, newStitch: Int) {
         viewModelScope.launch {
             try {
@@ -84,13 +106,11 @@ class PatternDetailViewModel(
                     stitch_index = newStitch,
                     is_completed = work.is_completed
                 )
-                // API経由でカウンター情報を更新
                 val response = ApiClient.service.incrementStitch(work.id, request)
                 if(response.isSuccessful) {
-                    // 成功したら、返ってきた最新のWork情報でUIを更新
                     _uiState.update { it.copy(work = response.body()) }
                 } else {
-                    Log.e("PatternDetailViewModel", "Failed to update stitch count")
+                    Log.e("PatternDetailViewModel", "Failed to update stitch count: ${response.message()}")
                 }
             } catch (e: Exception) {
                 Log.e("PatternDetailViewModel", "Error updating stitch count", e)
@@ -98,9 +118,34 @@ class PatternDetailViewModel(
         }
     }
 
-    // --- UIから呼び出される関数 ---
-    fun incrementRow() { _uiState.value.work?.let { updateStitchCount(it, it.raw_index + 1, it.stitch_index) } }
-    fun decrementRow() { _uiState.value.work?.let { if (it.raw_index > 0) updateStitchCount(it, it.raw_index - 1, it.stitch_index) } }
-    fun incrementStitch() { _uiState.value.work?.let { updateStitchCount(it, it.raw_index, it.stitch_index + 1) } }
-    fun decrementStitch() { _uiState.value.work?.let { if (it.stitch_index > 0) updateStitchCount(it, it.raw_index, it.stitch_index - 1) } }
+    // --- UIから呼び出されるカウンター操作関数 ---
+
+    fun incrementRow() {
+        _uiState.value.work?.let {
+            updateStitchCount(it, it.raw_index + 1, it.stitch_index)
+        }
+    }
+
+    fun decrementRow() {
+        _uiState.value.work?.let {
+            if (it.raw_index > 0) {
+                updateStitchCount(it, it.raw_index - 1, it.stitch_index)
+            }
+        }
+    }
+
+    fun incrementStitch() {
+        _uiState.value.work?.let {
+            updateStitchCount(it, it.raw_index, it.stitch_index + 1)
+        }
+    }
+
+    fun decrementStitch() {
+        _uiState.value.work?.let {
+            if (it.stitch_index > 0) {
+                updateStitchCount(it, it.raw_index, it.stitch_index - 1)
+            }
+        }
+    }
 }
+
