@@ -1,12 +1,8 @@
 package com.example.myapplication.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape // ★★★ このimport文を追加 ★★★
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -15,21 +11,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color // ★★★ このimport文を追加 ★★★
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.ui.components.PatternChart
 import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
-
-// Sample pattern data (ideally from ViewModel)
-val patternData = List(8) {
-    listOf("k", "k", "p", "p", "k", "k", "p", "p", "k", "k", "p", "p")
-}
-val symbolMap = mapOf("k" to "|", "p" to "•")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,8 +75,8 @@ fun PatternViewScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     PatternChart(
-                        pattern = patternData, // TODO: This should come from the ViewModel
-                        highlightedRow = work.raw_index, // Corrected to raw_index
+                        pattern = uiState.patternData,
+                        highlightedRow = work.raw_index,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -108,7 +99,7 @@ fun PatternViewScreen(
                             ) {
                                 CounterButton(text = "-") { viewModel.decrementRow() }
                                 Text(
-                                    text = (work.raw_index + 1).toString(), // Corrected to raw_index
+                                    text = (work.raw_index + 1).toString(),
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryTeal
@@ -122,53 +113,6 @@ fun PatternViewScreen(
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(uiState.error ?: "An error occurred.")
-            }
-        }
-    }
-}
-
-@Composable
-fun PatternChart(
-    pattern: List<List<String>>,
-    highlightedRow: Int,
-    modifier: Modifier = Modifier
-) {
-    if (pattern.isEmpty()) return
-
-    val columnCount = pattern.first().size
-    val highlightColor = PrimaryTeal.copy(alpha = 0.2f)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White, RoundedCornerShape(8.dp))
-            .padding(8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columnCount),
-            userScrollEnabled = false
-        ) {
-            itemsIndexed(pattern.flatten()) { index, symbol ->
-                val rowIndex = index / columnCount
-                val backgroundColor = if (rowIndex == highlightedRow) {
-                    highlightColor
-                } else {
-                    Color.Transparent
-                }
-
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .background(backgroundColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = symbolMap[symbol] ?: "?",
-                        color = Color.Gray,
-                        fontSize = 18.sp
-                    )
-                }
             }
         }
     }

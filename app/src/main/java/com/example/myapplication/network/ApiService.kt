@@ -6,20 +6,21 @@ import com.example.myapplication.model.IncrementStitchRequest
 import com.example.myapplication.model.RegisterWork
 import com.example.myapplication.model.User
 import com.example.myapplication.model.Work
-import okhttp3.Call
 import okhttp3.MultipartBody
-import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
-import retrofit2.http.Url
+
+// 作品情報（主に work_url）を更新するためのリクエストボディ
+data class UpdateWorkRequest(
+    val work_url: String
+)
 
 interface ApiService {
     @POST("v1/users")
@@ -35,7 +36,7 @@ interface ApiService {
 
     @POST("v1/works")
     suspend fun registerWork(
-        @Body work : RegisterWork
+        @Body work: RegisterWork
     ): Response<Work>
 
     @GET("v1/works/{id}")
@@ -49,6 +50,10 @@ interface ApiService {
         @Body request: IncrementStitchRequest
     ): Response<Work>
 
+    // ★★★ PatternEditViewModelで必要な定義を追加 ★★★
+    @PATCH("v1/works/{id}")
+    suspend fun updateWork(@Path("id") id: Int, @Body request: UpdateWorkRequest): Response<Work>
+
     @DELETE("v1/works/{id}")
     suspend fun deleteWork(
         @Path("id") id: Int
@@ -59,4 +64,9 @@ interface ApiService {
     suspend fun uploadImage(
         @Part file: MultipartBody.Part
     ): Response<CsvConversions>
+
+    // ★★★ PatternEditViewModelで必要な定義を追加 ★★★
+    @Multipart
+    @POST("v1/csv-uploads") // 仮のエンドポイント名です。実際のAPI仕様に合わせてください。
+    suspend fun uploadCsv(@Part file: MultipartBody.Part): Response<CsvConversions>
 }

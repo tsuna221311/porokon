@@ -7,19 +7,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.myapplication.ui.screens.ConfirmPhotoScreen
-import com.example.myapplication.ui.screens.DashboardScreen
-import com.example.myapplication.ui.screens.EnglishPatternScreen
-import com.example.myapplication.ui.screens.MyPatternsScreen
-import com.example.myapplication.ui.screens.OcrScreen
-import com.example.myapplication.ui.screens.PatternDetailScreen
-import com.example.myapplication.ui.screens.PatternEditScreen
-import com.example.myapplication.ui.screens.SavePatternScreen
-import com.example.myapplication.ui.screens.SelectModeScreen
+import com.example.myapplication.ui.screens.*
 
-/**
- * App's navigation routes, defined as a sealed class for type safety.
- */
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object MyPatterns : Screen("my_patterns")
@@ -28,12 +17,16 @@ sealed class Screen(val route: String) {
     }
     object SelectMode : Screen("select_mode")
     object OcrCapture : Screen("ocr_capture")
-    object ConfirmPhoto : Screen("confirm_photo")
-    object SavePattern : Screen("save_pattern")
+    object ConfirmPhoto : Screen("confirm_photo/{photoUri}") {
+        fun createRoute(photoUri: String) = "confirm_photo/$photoUri"
+    }
+    // ★★★ このオブジェクトを修正 ★★★
+    object SavePattern : Screen("save_pattern/{fileUrl}") {
+        fun createRoute(fileUrl: String) = "save_pattern/$fileUrl"
+    }
     object EnglishPattern : Screen("english_pattern")
     object PatternEdit : Screen("edit_pattern")
 }
-
 
 @Composable
 fun AppNavigation(
@@ -41,7 +34,7 @@ fun AppNavigation(
     onMenuClick: () -> Unit
 ) {
     NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
-
+        // (NavHostの中身は変更なし)
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 navController = navController,
@@ -49,14 +42,12 @@ fun AppNavigation(
                 dashboardViewModel = viewModel()
             )
         }
-
         composable(Screen.MyPatterns.route) {
             MyPatternsScreen(
                 navController = navController,
                 onMenuClick = onMenuClick
             )
         }
-
         composable(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
@@ -66,8 +57,6 @@ fun AppNavigation(
                 viewModel = viewModel()
             )
         }
-
-        // --- New Pattern Creation Flow ---
         composable(Screen.SelectMode.route) {
             SelectModeScreen(
                 onNavigateToCamera = { navController.navigate(Screen.OcrCapture.route) },
@@ -77,25 +66,31 @@ fun AppNavigation(
         composable(Screen.OcrCapture.route) {
             OcrScreen(navController = navController)
         }
-        composable(Screen.ConfirmPhoto.route) {
+        composable(
+            route = Screen.ConfirmPhoto.route,
+            arguments = listOf(navArgument("photoUri") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val photoUri = backStackEntry.arguments?.getString("photoUri")
             ConfirmPhotoScreen(
-                // Corrected: Use onConfirmClick parameter
-                onConfirmClick = { navController.navigate(Screen.SavePattern.route) },
-                onRetakeClick = { navController.popBackStack() }
+                navController = navController,
+                photoUri = photoUri
             )
         }
-        composable(Screen.SavePattern.route) {
+        composable(
+            route = Screen.SavePattern.route,
+            arguments = listOf(navArgument("fileUrl") { type = NavType.StringType })
+        ) {
             SavePatternScreen(
-                onNavigateBack = { navController.popBackStack() },
                 onSaveComplete = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Dashboard.route) { inclusive = true }
                     }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
-
-        // --- Other Screens ---
         composable(Screen.EnglishPattern.route) {
             EnglishPatternScreen(navController = navController)
         }

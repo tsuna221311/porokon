@@ -42,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -75,6 +76,14 @@ dependencies {
     // Extended Material Icons for Compose
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
+    // ★★★ CameraX ライブラリを追加 ★★★
+    val cameraxVersion = "1.3.4" // 最新バージョンを確認してください
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+
+
     // Firebase Bill of Materials (BOM)
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     // Firebase services
@@ -83,7 +92,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
 
     // Firebase UI for easy authentication screens
-    implementation("com.firebaseui:firebase-ui-auth:8.0.2") // Updated to a stable version
+    implementation("com.firebaseui:firebase-ui-auth:8.0.2")
 
     // Networking (OkHttp & Retrofit) - Using BOM for version alignment
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.12.0"))

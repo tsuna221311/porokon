@@ -1,106 +1,131 @@
 package com.example.myapplication.ui.screens
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.myapplication.network.ApiClient
+import com.example.myapplication.network.GCSApiClient
+import com.example.myapplication.network.UpdateWorkRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
-// UIの状態を表すデータクラス
 data class PatternEditUiState(
     val patternGrid: List<List<String>> = emptyList(),
     val selectedSymbol: String = "k",
     val selectedCell: Pair<Int, Int>? = null,
-    val canUndo: Boolean = false // 「元に戻す」が可能か
+    val canUndo: Boolean = false,
+    val isLoading: Boolean = true,
+    val error: String? = null
 )
 
-class PatternEditViewModel : ViewModel() {
+class PatternEditViewModel(
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PatternEditUiState())
     val uiState: StateFlow<PatternEditUiState> = _uiState.asStateFlow()
 
-    // 変更履歴を保存するためのリスト
-    private val history = mutableListOf<List<List<String>>>()
+    private val workId: Int = checkNotNull(savedStateHandle["workId"])
+    private val undoStack = mutableListOf<List<List<String>>>()
 
     init {
-        loadInitialPattern()
+        loadPatternForEdit(workId)
     }
 
-    private fun loadInitialPattern() {
-        // 本来はカウンター画面から渡された編み図データを読み込む
-        val initialGrid = List(10) { List(10) { "-" } }
-        _uiState.update { it.copy(patternGrid = initialGrid) }
-        // 最初の状態を履歴に保存
-        history.add(initialGrid)
-    }
+    private fun loadPatternForEdit(id: Int) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val workResponse = ApiClient.service.getOneWork(id)
+                val workBody = workResponse.body()
+                if (!workResponse.isSuccessful || workBody == null || workBody.work_url.isBlank()) {
+                    throw Exception("Failed to get work info")
+                }
 
-    // 記号パレットで記号が選択されたときの処理
-    fun onSymbolSelected(symbol: String) {
-        _uiState.update { it.copy(selectedSymbol = symbol) }
-    }
+                val csvResponse = GCSApiClient.service.downloadCsv(workBody.work_url)
+                val csvBody = csvResponse.body()
+                if (!csvResponse.isSuccessful || csvBody == null) {
+                    throw Exception("Failed to download CSV")
+                }
 
-    // グリッドのセルがクリックされたときの処理
-    fun onCellClicked(row: Int, col: Int) {
-        val currentGrid = _uiState.value.patternGrid
-        // 新しいグリッド状態を作成
-        val newGrid = currentGrid.map { it.toMutableList() }.toMutableList()
-        newGrid[row][col] = _uiState.value.selectedSymbol
+                val grid = csvBody.string().lines().mapNotNull { if (it.isNotBlank()) it.split(",") else null }
+                _uiState.update { it.copy(patternGrid = grid, isLoading = false, error = null) }
 
-        // 変更をUIに反映し、履歴を更新
-        updateGridAndHistory(newGrid)
-        _uiState.update { it.copy(selectedCell = Pair(row, col)) }
-    }
-
-    // 行を追加するロジック
-    fun addRow() {
-        val currentGrid = _uiState.value.patternGrid
-        val columnCount = currentGrid.firstOrNull()?.size ?: 10
-        val newRow = List(columnCount) { "-" }
-        val newGrid = currentGrid.toMutableList().apply { add(newRow) }
-
-        updateGridAndHistory(newGrid)
-    }
-
-    // 行を削除するロジック
-    fun removeRow() {
-        val currentGrid = _uiState.value.patternGrid
-        if (currentGrid.size > 1) { // 最後の1行は消せないようにする
-            val newGrid = currentGrid.toMutableList().apply { removeLast() }
-            updateGridAndHistory(newGrid)
-        }
-    }
-
-    // 「元に戻す」ロジック
-    fun undo() {
-        if (history.size > 1) { // 最初の状態より前には戻れない
-            history.removeLast() // 最新の履歴を削除
-            val previousGrid = history.last()
-            _uiState.update {
-                it.copy(
-                    patternGrid = previousGrid,
-                    canUndo = history.size > 1 // 履歴が1つなら、もう元に戻せない
-                )
+            } catch (e: Exception) {
+                Log.e("PatternEditViewModel", "Failed to load pattern", e)
+                _uiState.update { it.copy(error = "編み図の読み込みに失敗しました", isLoading = false) }
             }
         }
     }
 
-    // 保存するロジック
-    fun savePattern() {
-        // TODO: ここで、現在のグリッド(_uiState.value.patternGrid)を
-        // CSV形式に変換し、データベースやファイルに保存する処理を実装する
-        Log.d("PatternEdit", "Pattern Saved!")
+    fun onCellClicked(row: Int, col: Int) {
+        pushToUndoStack()
+        val newGrid = _uiState.value.patternGrid.map { it.toMutableList() }.toMutableList()
+        newGrid[row][col] = _uiState.value.selectedSymbol
+        _uiState.update { it.copy(patternGrid = newGrid, selectedCell = Pair(row, col)) }
     }
 
-    // グリッドの状態と履歴を同時に更新するヘルパー関数
-    private fun updateGridAndHistory(newGrid: List<List<String>>) {
-        history.add(newGrid)
-        _uiState.update {
-            it.copy(
-                patternGrid = newGrid,
-                canUndo = history.size > 1 // 履歴が1つより多ければ元に戻せる
-            )
+    fun onSymbolSelected(symbol: String) {
+        _uiState.update { it.copy(selectedSymbol = symbol) }
+    }
+
+    fun addRow() {
+        pushToUndoStack()
+        val currentGrid = _uiState.value.patternGrid
+        val newRow = List(currentGrid.firstOrNull()?.size ?: 10) { "-" }
+        _uiState.update { it.copy(patternGrid = currentGrid + listOf(newRow)) }
+    }
+
+    fun removeRow() {
+        pushToUndoStack()
+        val currentGrid = _uiState.value.patternGrid
+        if (currentGrid.isNotEmpty()) {
+            _uiState.update { it.copy(patternGrid = currentGrid.dropLast(1)) }
         }
     }
-}
 
+    fun undo() {
+        if (undoStack.isNotEmpty()) {
+            val lastState = undoStack.removeAt(undoStack.lastIndex)
+            _uiState.update { it.copy(patternGrid = lastState, canUndo = undoStack.isNotEmpty()) }
+        }
+    }
+
+    fun savePattern() {
+        viewModelScope.launch {
+            try {
+                val csvContent = _uiState.value.patternGrid.joinToString("\n") { it.joinToString(",") }
+                val requestBody = csvContent.toRequestBody("text/csv".toMediaTypeOrNull())
+                val multipartBody = MultipartBody.Part.createFormData("file", "updated_pattern.csv", requestBody)
+
+                val uploadResponse = ApiClient.service.uploadCsv(multipartBody)
+                val newUrl = uploadResponse.body()?.csv_url ?: throw Exception("CSV upload failed")
+
+                val updateRequest = UpdateWorkRequest(work_url = newUrl)
+                val updateResponse = ApiClient.service.updateWork(workId, updateRequest)
+                if (!updateResponse.isSuccessful) {
+                    throw Exception("Work update failed")
+                }
+
+                // 保存成功時はエラークリア
+                _uiState.update { it.copy(error = null) }
+
+            } catch (e: Exception) {
+                Log.e("PatternEditViewModel", "Failed to save pattern", e)
+                _uiState.update { it.copy(error = "編み図の保存に失敗しました") }
+            }
+        }
+    }
+
+    private fun pushToUndoStack() {
+        undoStack.add(_uiState.value.patternGrid)
+        _uiState.update { it.copy(canUndo = true) }
+    }
+}

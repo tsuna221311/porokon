@@ -1,10 +1,5 @@
 package com.example.myapplication.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,14 +15,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.model.Work
 import com.example.myapplication.ui.components.common.PatternListItem
-import com.example.myapplication.ui.navigation.Screen // 修正: Routes -> Screen
+import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.PrimaryTeal
 import com.example.myapplication.ui.theme.SecondarySalmon
 
@@ -37,7 +29,7 @@ fun DashboardScreen(
     onMenuClick: () -> Unit,
     dashboardViewModel: DashboardViewModel
 ) {
-    // 状態に応じて表示を切り替える
+    // ViewModelの状態に応じて、読み込み中／成功／エラー画面を切り替える
     val uiState by dashboardViewModel.dashboardUiState.collectAsState()
 
     when (uiState) {
@@ -72,31 +64,6 @@ fun ResultScreen(
     onMenuClick: () -> Unit,
     works: List<Work>
 ) {
-    val context = LocalContext.current
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview(),
-        onResult = { bitmap ->
-            if (bitmap != null) {
-                Toast.makeText(context, "写真が撮影されました", Toast.LENGTH_SHORT).show()
-                // NOTE: Here you might want to navigate to the confirmation screen
-                // navController.navigate(Screen.ConfirmPhoto.route)
-            } else {
-                Toast.makeText(context, "撮影がキャンセルされました", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                // For a full flow, navigate to the mode selection screen
-                navController.navigate(Screen.SelectMode.route)
-            } else {
-                Toast.makeText(context, "カメラの権限が拒否されました", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -111,14 +78,15 @@ fun ResultScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // We'll navigate to the start of the creation flow
+                    // ★★★ 新しい実装 ★★★
+                    // 「＋」ボタンが押されたら、モード選択画面に遷移する
                     navController.navigate(Screen.SelectMode.route)
                 },
                 containerColor = PrimaryTeal
             ) {
                 Icon(
                     Icons.Default.PhotoCamera,
-                    contentDescription = "カメラを起動",
+                    contentDescription = "新規作成",
                     tint = Color.White
                 )
             }
@@ -145,7 +113,8 @@ fun ResultScreen(
                         icon = if (work.is_completed) Icons.Default.Check else Icons.Default.Edit,
                         iconColor = if (work.is_completed) SecondarySalmon else PrimaryTeal,
                         onClick = {
-                            // 修正: Routes -> Screen, and use the helper function
+                            // ★★★ 新しい実装 ★★★
+                            // 作品がタップされたら、正しいルートで詳細画面に遷移する
                             navController.navigate(Screen.PatternView.createRoute(work.id))
                         }
                     )
@@ -154,3 +123,4 @@ fun ResultScreen(
         }
     }
 }
+

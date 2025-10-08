@@ -5,9 +5,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import com.example.myapplication.ui.LoginScreen
+import androidx.compose.ui.Modifier
+import com.example.myapplication.ui.LoginScreen // ★★★ このimport文を追加 ★★★
 import com.example.myapplication.ui.theme.AmuNaviTheme
 import com.example.myapplication.viewmodel.LoginViewModel
 import com.firebase.ui.auth.AuthUI
@@ -23,9 +28,9 @@ class LoginActivity : ComponentActivity() {
     ) { result ->
         val user = FirebaseAuth.getInstance().currentUser
         if (result.resultCode == RESULT_OK && user != null) {
-            viewModel.registerUser(user.uid)
+            viewModel.registerUser()
         } else {
-            viewModel.checkLoginState() // ログイン失敗時も状態 // 更新
+            viewModel.setLoginFailure("ログインがキャンセルされました。")
         }
     }
 
@@ -34,24 +39,37 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             AmuNaviTheme {
-                val state by viewModel.loginState.collectAsState()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val state by viewModel.loginState.collectAsState()
 
-                if (state is LoginViewModel.LoginState.Success) {
-                    val intent = Intent(this, MainActivity::class.java)
-                    startActivity(intent)
-                    finish()
+                    // ログイン成功を検知したらMainActivityに遷移
+                    LaunchedEffect(state) {
+                        if (state is LoginViewModel.LoginState.Success) {
+                            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                            finish()
+                        }
+                    }
+
+                    // LoginScreenを呼び出す
+                    LoginScreen(
+                        state = state,
+                        onRetry = { showSignInScreen() }
+                    )
                 }
-
-                LoginScreen(
-                    state = state,
-                    onRetry = { showSignInScreen() }
-                )
             }
         }
+    }
 
+    override fun onStart() {
+        super.onStart()
+        // アプリ起動時にログイン状態を確認
         viewModel.checkLoginState()
     }
 
+    // Firebase UIのログイン画面を表示する関数
     private fun showSignInScreen() {
         val providers = listOf(
             AuthUI.IdpConfig.EmailBuilder().build(),
