@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.screens
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ data class TranslatedPattern(
 // 英文パターン画面のUIの状態を管理するデータクラス
 data class EnglishPatternUiState(
     val translatedPattern: TranslatedPattern? = null,
+    val highlightedRow: Int = 0,
     val isLoading: Boolean = true
 )
 
@@ -36,10 +38,15 @@ private val dummyPatternForTranslation = listOf(
     listOf("p", "p", "p", "-", "k", "k", "k", "k")
 ).reversed()
 
-class EnglishPatternViewModel : ViewModel() {
+class EnglishPatternViewModel(
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EnglishPatternUiState())
     val uiState: StateFlow<EnglishPatternUiState> = _uiState.asStateFlow()
+
+    // 前の画面から渡された、ハイライトする行のインデックス
+    private val highlightedRow: Int = checkNotNull(savedStateHandle["highlightedRow"])
 
     init {
         // ViewModelが作成されたときに、ダミーの編み図を翻訳する
@@ -53,49 +60,29 @@ class EnglishPatternViewModel : ViewModel() {
             // ダミーデータを使って翻訳処理を実行
             val result = translate(dummyPatternForTranslation)
 
-            _uiState.update { it.copy(translatedPattern = result, isLoading = false) }
+            _uiState.update {
+                it.copy(
+                    translatedPattern = result,
+                    highlightedRow = highlightedRow,
+                    isLoading = false
+                )
+            }
         }
     }
 
     /**
      * 編み図データ（2次元リスト）を英文パターンに変換するロジック。
-     * @param pattern 編み図のグリッドデータ。
-     * @return 翻訳されたパターン(手順と略語)。
      */
     private fun translate(pattern: List<List<String>>): TranslatedPattern {
         val instructions = mutableListOf<String>()
         val usedSymbols = mutableSetOf<String>()
 
-        // 各行をループして処理
         pattern.forEach { row ->
             if (row.isEmpty()) return@forEach
-            // '^' と '-' を除いた、実際に使われている記号を収集
             usedSymbols.addAll(row.filter { it != "^" && it != "-" })
-
-            val compressedRow = StringBuilder()
-            var count = 0
-            var currentSymbol = ""
-
-            row.forEach { symbol ->
-                if (symbol == currentSymbol && (symbol == "k" || symbol == "p")) {
-                    count++
-                } else {
-                    if (count > 0) {
-                        compressedRow.append(formatSymbol(currentSymbol, count))
-                        compressedRow.append(", ")
-                    }
-                    currentSymbol = symbol
-                    count = 1
-                }
-            }
-            if (count > 0) {
-                compressedRow.append(formatSymbol(currentSymbol, count))
-            }
-
-            instructions.add(compressedRow.toString().trim().removeSuffix(","))
+            instructions.add(compressRow(row))
         }
 
-        // 収集した記号から略語のマップを作成
         val abbreviations = usedSymbols.associateWith {
             when(it.lowercase()) {
                 "k" -> "knit"
@@ -109,13 +96,29 @@ class EnglishPatternViewModel : ViewModel() {
         return TranslatedPattern(instructions = instructions, abbreviations = abbreviations)
     }
 
-    /**
-     * 記号と回数から、"K2"や"k2tog"のような文字列を生成するヘルパー関数。
-     */
+    // 1行を圧縮して英文にするヘルパー関数
+    private fun compressRow(row: List<String>): String {
+        if (row.isEmpty()) return ""
+        val parts = mutableListOf<String>()
+        var count = 0
+        var currentSymbol = ""
+
+        row.forEach { symbol ->
+            if (symbol == currentSymbol && (symbol == "k" || symbol == "p")) {
+                count++
+            } else {
+                if(count > 0 && currentSymbol != "-") parts.add(formatSymbol(currentSymbol, count))
+                currentSymbol = symbol
+                count = 1
+            }
+        }
+        if(count > 0 && currentSymbol != "-") parts.add(formatSymbol(currentSymbol, count))
+        return parts.joinToString(", ").trim().removeSuffix(",")
+    }
+
     private fun formatSymbol(symbol: String, count: Int): String {
         return when {
-            symbol == "-" -> "" // 空白マスは無視
-            symbol == "^" -> "" // 複数マス記号の一部は無視
+            symbol == "^" -> ""
             count > 1 && (symbol == "k" || symbol == "p") -> "${symbol.uppercase()}$count"
             else -> symbol
         }

@@ -29,7 +29,7 @@ fun EnglishPatternScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val translatedPattern = uiState.translatedPattern
-    val currentStep = 3 // ダミーのハイライト位置 (4段目)
+    val currentStep = uiState.highlightedRow
 
     Scaffold(
         topBar = {
@@ -45,7 +45,7 @@ fun EnglishPatternScreen(
         bottomBar = {
             if (translatedPattern != null) {
                 BottomAppBar(containerColor = Color.White) {
-                    TextButton(onClick = { /* TODO: Copy to clipboard */ }) {
+                    TextButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "コピー")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("パターンをコピー")
@@ -54,19 +54,15 @@ fun EnglishPatternScreen(
             }
         }
     ) { padding ->
-        // ViewModelの状態に応じてUIを切り替える
         if (uiState.isLoading || translatedPattern == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp),
+                modifier = Modifier.padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // --- Abbreviations (略語) ---
                 item {
                     Text("Abbreviations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -79,7 +75,6 @@ fun EnglishPatternScreen(
                         }
                     }
                 }
-                // --- Instructions (手順) ---
                 item {
                     Text("Instructions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -89,15 +84,8 @@ fun EnglishPatternScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(
-                                        if (isHighlighted) PrimaryTeal.copy(alpha = 0.1f) else Color.Transparent,
-                                        RoundedCornerShape(4.dp)
-                                    )
-                                    .border(
-                                        width = 2.dp,
-                                        color = if (isHighlighted) PrimaryTeal else Color.Transparent,
-                                        shape = RoundedCornerShape(4.dp)
-                                    )
+                                    .background(if (isHighlighted) PrimaryTeal.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(4.dp))
+                                    .border(width = 2.dp, color = if (isHighlighted) PrimaryTeal else Color.Transparent, shape = RoundedCornerShape(4.dp))
                                     .padding(8.dp)
                             ) {
                                 Text("Row ${index + 1}: ", fontWeight = FontWeight.Bold)

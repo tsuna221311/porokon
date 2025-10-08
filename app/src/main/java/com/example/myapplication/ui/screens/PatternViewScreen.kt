@@ -11,18 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myapplication.ui.components.PatternChart
+import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
 
-// プレビュー用のダミー編み図データ
+// プレビュー用のダミー編み図データ（表面）
 val dummyPatternFromImage = listOf(
-    // 12段目 (一番上)
     listOf("p", "p", "-", "-", "k", "k", "k", "-"),
     listOf("p", "p", "-", "-", "k2tog", "^", "k", "-"),
     listOf("p", "p", "-", "-", "k", "k", "k", "k"),
@@ -35,13 +34,16 @@ val dummyPatternFromImage = listOf(
     listOf("p", "p", "p", "-", "k", "k", "k", "k"),
     listOf("p", "p", "p", "-", "k", "k", "k", "k"),
     listOf("p", "p", "p", "-", "k", "k", "k", "k")
-).reversed() // 編み図は下から上なのでリストを逆順にする
+).reversed()
 
+// 裏面の編み図データを生成するロジック
 val dummyPatternReverse = dummyPatternFromImage.map { row ->
     row.map { symbol ->
         when (symbol) {
             "k" -> "p"
             "p" -> "k"
+            "k2tog" -> "p2tog"
+            "ssk" -> "ssp"
             else -> symbol
         }
     }
@@ -53,7 +55,7 @@ fun PatternViewScreen(
     navController: NavController
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
-    var highlightedRow by remember { mutableStateOf(3) } // 4段目を初期ハイライト
+    var highlightedRow by remember { mutableStateOf(3) }
     var currentStitch by remember { mutableStateOf(5) }
 
     val currentPattern = if (selectedTabIndex == 0) {
@@ -72,8 +74,12 @@ fun PatternViewScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {}, enabled = false) { Icon(Icons.Default.Translate, contentDescription = "翻訳") }
-                    IconButton(onClick = {}, enabled = false) { Icon(Icons.Default.Edit, contentDescription = "修正") }
+                    IconButton(onClick = { navController.navigate(Screen.EnglishPattern.createRoute(highlightedRow)) }) {
+                        Icon(Icons.Default.Translate, contentDescription = "翻訳")
+                    }
+                    IconButton(onClick = {}, enabled = false) {
+                        Icon(Icons.Default.Edit, contentDescription = "修正")
+                    }
                 }
             )
         },
@@ -110,7 +116,6 @@ fun PatternViewScreen(
                         modifier = Modifier.padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // --- 現在の段数カウンター ---
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -121,28 +126,19 @@ fun PatternViewScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                CounterButton(text = "-") {
-                                    if (highlightedRow > 0) {
-                                        highlightedRow--
-                                    }
-                                }
+                                CounterButton(text = "-") { if (highlightedRow > 0) highlightedRow-- }
                                 Text(
                                     text = (highlightedRow + 1).toString(),
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryTeal
                                 )
-                                CounterButton(text = "+") {
-                                    if (highlightedRow < currentPattern.size - 1) {
-                                        highlightedRow++
-                                    }
-                                }
+                                CounterButton(text = "+") { if (highlightedRow < currentPattern.size - 1) highlightedRow++ }
                             }
                         }
 
                         HorizontalDivider(color = BgBase, thickness = 1.dp)
 
-                        // --- 現在の目数カウンター ---
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -182,3 +178,4 @@ private fun CounterButton(text: String, onClick: () -> Unit) {
         Text(text, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+

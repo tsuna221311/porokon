@@ -27,7 +27,10 @@ sealed class Screen(val route: String) {
     object SavePattern : Screen("save_pattern/{fileUrl}") {
         fun createRoute(fileUrl: String) = "save_pattern/$fileUrl"
     }
-    object EnglishPattern : Screen("english_pattern")
+    // ★★★ 修正: highlightedRowを引数として受け取るように変更 ★★★
+    object EnglishPattern : Screen("english_pattern/{highlightedRow}") {
+        fun createRoute(highlightedRow: Int) = "english_pattern/$highlightedRow"
+    }
     object PatternEdit : Screen("pattern_edit/{workId}") {
         fun createRoute(workId: Int) = "pattern_edit/$workId"
     }
@@ -49,7 +52,6 @@ fun AppNavigation(
             DashboardScreen(
                 navController = navController,
                 onMenuClick = onMenuClick,
-                // ★★★ 修正: 不足していたviewModelを渡す ★★★
                 dashboardViewModel = viewModel()
             )
         }
@@ -65,6 +67,7 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
+            // ダミーデータを表示するバージョンのPatternViewScreenを呼び出す
             PatternViewScreen(
                 navController = navController
             )
@@ -107,7 +110,11 @@ fun AppNavigation(
         }
 
         // --- その他 ---
-        composable(Screen.EnglishPattern.route) {
+        // ★★★ 修正: EnglishPatternのルート定義に引数を追加 ★★★
+        composable(
+            route = Screen.EnglishPattern.route,
+            arguments = listOf(navArgument("highlightedRow") { type = NavType.IntType })
+        ) {
             EnglishPatternScreen(navController = navController)
         }
         composable(
@@ -118,3 +125,4 @@ fun AppNavigation(
         }
     }
 }
+
