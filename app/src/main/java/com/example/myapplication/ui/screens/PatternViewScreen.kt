@@ -37,6 +37,16 @@ val dummyPatternFromImage = listOf(
     listOf("p", "p", "p", "-", "k", "k", "k", "k")
 ).reversed() // 編み図は下から上なのでリストを逆順にする
 
+val dummyPatternReverse = dummyPatternFromImage.map { row ->
+    row.map { symbol ->
+        when (symbol) {
+            "k" -> "p"
+            "p" -> "k"
+            else -> symbol
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternViewScreen(
@@ -44,6 +54,13 @@ fun PatternViewScreen(
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     var highlightedRow by remember { mutableStateOf(3) } // 4段目を初期ハイライト
+    var currentStitch by remember { mutableStateOf(5) }
+
+    val currentPattern = if (selectedTabIndex == 0) {
+        dummyPatternFromImage
+    } else {
+        dummyPatternReverse
+    }
 
     Scaffold(
         topBar = {
@@ -79,7 +96,7 @@ fun PatternViewScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 PatternChart(
-                    pattern = dummyPatternFromImage,
+                    pattern = currentPattern,
                     highlightedRow = highlightedRow,
                     modifier = Modifier.weight(1f)
                 )
@@ -89,33 +106,61 @@ fun PatternViewScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("現在の段数", fontWeight = FontWeight.SemiBold)
+                        // --- 現在の段数カウンター ---
                         Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            CounterButton(text = "-") {
-                                if (highlightedRow > 0) {
-                                    highlightedRow--
+                            Text("現在の段数", fontWeight = FontWeight.SemiBold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CounterButton(text = "-") {
+                                    if (highlightedRow > 0) {
+                                        highlightedRow--
+                                    }
+                                }
+                                Text(
+                                    text = (highlightedRow + 1).toString(),
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryTeal
+                                )
+                                CounterButton(text = "+") {
+                                    if (highlightedRow < currentPattern.size - 1) {
+                                        highlightedRow++
+                                    }
                                 }
                             }
-                            Text(
-                                text = (highlightedRow + 1).toString(),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryTeal
-                            )
-                            CounterButton(text = "+") {
-                                if (highlightedRow < dummyPatternFromImage.size - 1) {
-                                    highlightedRow++
-                                }
+                        }
+
+                        HorizontalDivider(color = BgBase, thickness = 1.dp)
+
+                        // --- 現在の目数カウンター ---
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("現在の目数", fontWeight = FontWeight.SemiBold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CounterButton(text = "-") { if (currentStitch > 0) currentStitch-- }
+                                Text(
+                                    text = (currentStitch + 1).toString(),
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryTeal
+                                )
+                                CounterButton(text = "+") { currentStitch++ }
                             }
                         }
                     }

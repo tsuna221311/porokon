@@ -49,6 +49,7 @@ fun AppNavigation(
             DashboardScreen(
                 navController = navController,
                 onMenuClick = onMenuClick,
+                // ★★★ 修正: 不足していたviewModelを渡す ★★★
                 dashboardViewModel = viewModel()
             )
         }
@@ -64,7 +65,6 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
-            // ダミーデータを表示するバージョンのPatternViewScreenを呼び出す
             PatternViewScreen(
                 navController = navController
             )
