@@ -10,8 +10,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.components.drawer.AppDrawer
-import com.example.myapplication.ui.navigation.AppNavigation
-import com.example.myapplication.ui.navigation.Screen
+import com.example.myapplication.ui.navigation.AppNavigation // ★★★ このimport文を追加 ★★★
+import com.example.myapplication.ui.navigation.Screen // ★★★ このimport文を追加 ★★★
 import com.example.myapplication.ui.theme.AmuNaviTheme
 import kotlinx.coroutines.launch
 
@@ -47,14 +47,12 @@ fun MainApp() {
                         drawerState.close()
                     }
                     navController.navigate(route) {
-                        // 同じ画面に何度も遷移しないようにする
                         launchSingleTop = true
                     }
                 }
             )
         }
     ) {
-        // AppNavigation に navController と onMenuClick アクションを渡す
         AppNavigation(
             navController = navController,
             onMenuClick = {

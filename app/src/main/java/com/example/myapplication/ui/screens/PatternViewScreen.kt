@@ -11,44 +11,31 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.ui.components.PatternChart
-import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
 
-// ★★★ 画像に基づいたダミーデータを追加 ★★★
-// 12段 x 8目の編み図
+// プレビュー用のダミー編み図データ
 val dummyPatternFromImage = listOf(
     // 12段目 (一番上)
     listOf("p", "p", "-", "-", "k", "k", "k", "-"),
-    // 11段目
     listOf("p", "p", "-", "-", "k2tog", "^", "k", "-"),
-    // 10段目
     listOf("p", "p", "-", "-", "k", "k", "k", "k"),
-    // 9段目
     listOf("p", "p", "-", "ssk", "^", "k", "k", "k"),
-    // 8段目
     listOf("p", "p", "-", "k", "k", "k", "k", "k"),
-    // 7段目
     listOf("p", "p", "-", "k", "k2tog", "^", "k", "k"),
-    // 6段目
     listOf("p", "p", "ssk", "^", "k", "k", "k", "k"),
-    // 5段目
     listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    // 4段目
     listOf("p", "p", "p", "-", "k", "k2tog", "^", "k"),
-    // 3段目
     listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    // 2段目
     listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    // 1段目 (一番下)
     listOf("p", "p", "p", "-", "k", "k", "k", "k")
-).reversed() // 実際の編み図は下から上なので、リストを逆順にする
+).reversed() // 編み図は下から上なのでリストを逆順にする
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,7 +43,6 @@ fun PatternViewScreen(
     navController: NavController
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
-    // ダミーデータ用のカウンター状態
     var highlightedRow by remember { mutableStateOf(3) } // 4段目を初期ハイライト
 
     Scaffold(
@@ -69,7 +55,6 @@ fun PatternViewScreen(
                     }
                 },
                 actions = {
-                    // ダミー表示中はボタンを無効化
                     IconButton(onClick = {}, enabled = false) { Icon(Icons.Default.Translate, contentDescription = "翻訳") }
                     IconButton(onClick = {}, enabled = false) { Icon(Icons.Default.Edit, contentDescription = "修正") }
                 }
@@ -93,7 +78,6 @@ fun PatternViewScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ★★★ 修正: ダミーデータをPatternChartに渡す ★★★
                 PatternChart(
                     pattern = dummyPatternFromImage,
                     highlightedRow = highlightedRow,
@@ -117,14 +101,22 @@ fun PatternViewScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            CounterButton(text = "-") { if(highlightedRow > 0) highlightedRow-- }
+                            CounterButton(text = "-") {
+                                if (highlightedRow > 0) {
+                                    highlightedRow--
+                                }
+                            }
                             Text(
                                 text = (highlightedRow + 1).toString(),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryTeal
                             )
-                            CounterButton(text = "+") { if(highlightedRow < dummyPatternFromImage.size - 1) highlightedRow++ }
+                            CounterButton(text = "+") {
+                                if (highlightedRow < dummyPatternFromImage.size - 1) {
+                                    highlightedRow++
+                                }
+                            }
                         }
                     }
                 }

@@ -11,6 +11,7 @@ import com.example.myapplication.ui.screens.*
 
 /**
  * アプリ内の画面遷移ルートを定義する Sealed Class。
+ * 文字列を直接使うよりもタイプミスを防げて安全です。
  */
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
@@ -34,6 +35,8 @@ sealed class Screen(val route: String) {
 
 /**
  * アプリ全体のナビゲーショングラフを定義するComposable。
+ * @param navController アプリケーションのナビゲーションを制御します。
+ * @param onMenuClick サイドメニューを開くためのアクションを伝達します。
  */
 @Composable
 fun AppNavigation(
@@ -61,8 +64,7 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
-            // ★★★ 修正: viewModelの引数を削除 ★★★
-            // ダミーデータを表示するバージョンにはviewModelは不要
+            // ダミーデータを表示するバージョンのPatternViewScreenを呼び出す
             PatternViewScreen(
                 navController = navController
             )
