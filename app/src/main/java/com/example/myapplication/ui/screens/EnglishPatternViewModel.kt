@@ -1,126 +1,91 @@
 package com.example.myapplication.ui.screens
 
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.R
+import com.example.myapplication.logic.PatternTranslator
+import com.example.myapplication.logic.TranslatedPattern
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 
-// 翻訳されたパターンを保持するためのデータクラス
-data class TranslatedPattern(
-    val instructions: List<String>,
-    val abbreviations: Map<String, String>
-)
+/**
+ * 英文パターン表示画面のUIが取りうる状態を定義します。
+ */
+sealed interface EnglishPatternUiState {
+    object Loading : EnglishPatternUiState
+    data class Success(
+        val translatedPattern: TranslatedPattern,
+        val originalCsv: String,
+        val highlightedRow: Int = 0
+    ) : EnglishPatternUiState
+    data class Error(val message: String) : EnglishPatternUiState
+}
 
-// 英文パターン画面のUIの状態を管理するデータクラス
-data class EnglishPatternUiState(
-    val translatedPattern: TranslatedPattern? = null,
-    val highlightedRow: Int = 0,
-    val isLoading: Boolean = true
-)
+// --- サーバー通信をシミュレートするためのモック（模擬）クラス ---
+interface OcrApiService {
+    suspend fun uploadImageForOcr(imageBytes: ByteArray): String
+}
 
-// PatternViewScreenで定義されているものと同じダミーデータ
-private val dummyPatternForTranslation = listOf(
-    listOf("p", "p", "-", "-", "k", "k", "k", "-"),
-    listOf("p", "p", "-", "-", "k2tog", "^", "k", "-"),
-    listOf("p", "p", "-", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "-", "ssk", "^", "k", "k", "k"),
-    listOf("p", "p", "-", "k", "k", "k", "k", "k"),
-    listOf("p", "p", "-", "k", "k2tog", "^", "k", "k"),
-    listOf("p", "p", "ssk", "^", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k2tog", "^", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k")
-).reversed()
+class MockOcrApiService : OcrApiService {
+    override suspend fun uploadImageForOcr(imageBytes: ByteArray): String {
+        delay(1500)
+        return "k,k,p,p\nk,k,p,p\np,p,k,k\np,p,k,k"
+    }
+}
+// --- ここまでモッククラス ---
 
-class EnglishPatternViewModel(
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+class EnglishPatternViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(EnglishPatternUiState())
+    private val _uiState = MutableStateFlow<EnglishPatternUiState>(EnglishPatternUiState.Loading)
     val uiState: StateFlow<EnglishPatternUiState> = _uiState.asStateFlow()
 
-    // 前の画面から渡された、ハイライトする行のインデックス
-    private val highlightedRow: Int = checkNotNull(savedStateHandle["highlightedRow"])
+    private val ocrService: OcrApiService = MockOcrApiService()
 
     init {
-        // ViewModelが作成されたときに、ダミーの編み図を翻訳する
-        translateDummyPattern()
+        // ★★★ 修正点: 存在しないファイル名(img_3315)を正しいファイル名(img_3135)に修正 ★★★
+        loadPatternFromRemoteOcr(R.raw.img_3135)
     }
 
-    private fun translateDummyPattern() {
+    fun loadPatternFromRemoteOcr(imageResourceId: Int) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.value = EnglishPatternUiState.Loading
+            try {
+                val imageBytes = getApplication<Application>().resources.openRawResource(imageResourceId).use {
+                    it.readBytes()
+                }
+                val csvContent = ocrService.uploadImageForOcr(imageBytes)
+                if (csvContent.isBlank()) {
+                    throw IOException("サーバーから空のデータが返されました。")
+                }
 
-            // ダミーデータを使って翻訳処理を実行
-            val result = translate(dummyPatternForTranslation)
+                Log.d("CSVResponse", csvContent)
 
-            _uiState.update {
-                it.copy(
-                    translatedPattern = result,
-                    highlightedRow = highlightedRow,
-                    isLoading = false
+                val grid = parseCsvToGrid(csvContent)
+                val translatedPattern = PatternTranslator.fromGridToEnglish(grid)
+
+                _uiState.value = EnglishPatternUiState.Success(
+                    translatedPattern = translatedPattern,
+                    originalCsv = csvContent,
+                    highlightedRow = 0
                 )
+
+            } catch (e: Exception) {
+                _uiState.value = EnglishPatternUiState.Error("パターン変換に失敗しました: ${e.message}")
             }
         }
     }
 
-    /**
-     * 編み図データ（2次元リスト）を英文パターンに変換するロジック。
-     */
-    private fun translate(pattern: List<List<String>>): TranslatedPattern {
-        val instructions = mutableListOf<String>()
-        val usedSymbols = mutableSetOf<String>()
-
-        pattern.forEach { row ->
-            if (row.isEmpty()) return@forEach
-            usedSymbols.addAll(row.filter { it != "^" && it != "-" })
-            instructions.add(compressRow(row))
-        }
-
-        val abbreviations = usedSymbols.associateWith {
-            when(it.lowercase()) {
-                "k" -> "knit"
-                "p" -> "purl"
-                "k2tog" -> "knit 2 stitches together"
-                "ssk" -> "slip, slip, knit"
-                else -> "unknown symbol"
+    private fun parseCsvToGrid(csv: String): List<List<String>> {
+        return csv.lines()
+            .filter { it.isNotBlank() }
+            .map { line ->
+                line.split(',').map { it.trim() }
             }
-        }
-
-        return TranslatedPattern(instructions = instructions, abbreviations = abbreviations)
-    }
-
-    // 1行を圧縮して英文にするヘルパー関数
-    private fun compressRow(row: List<String>): String {
-        if (row.isEmpty()) return ""
-        val parts = mutableListOf<String>()
-        var count = 0
-        var currentSymbol = ""
-
-        row.forEach { symbol ->
-            if (symbol == currentSymbol && (symbol == "k" || symbol == "p")) {
-                count++
-            } else {
-                if(count > 0 && currentSymbol != "-") parts.add(formatSymbol(currentSymbol, count))
-                currentSymbol = symbol
-                count = 1
-            }
-        }
-        if(count > 0 && currentSymbol != "-") parts.add(formatSymbol(currentSymbol, count))
-        return parts.joinToString(", ").trim().removeSuffix(",")
-    }
-
-    private fun formatSymbol(symbol: String, count: Int): String {
-        return when {
-            symbol == "^" -> ""
-            count > 1 && (symbol == "k" || symbol == "p") -> "${symbol.uppercase()}$count"
-            else -> symbol
-        }
     }
 }

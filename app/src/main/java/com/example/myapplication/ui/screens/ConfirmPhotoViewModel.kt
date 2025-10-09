@@ -22,7 +22,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 sealed interface OcrUiState {
     object Standby : OcrUiState
     object Loading : OcrUiState
-    data class Success(val fileUrl: String, val initialContent: String, val isChart: Boolean) : OcrUiState
+    data class Success(val initialContent: String, val isChart: Boolean) : OcrUiState
     data class Error(val message: String) : OcrUiState
 }
 
@@ -49,14 +49,13 @@ class OcrViewModel : ViewModel() {
                     val response = ApiClient.service.uploadChartImage(multipartBody)
                     val body = response.body()
                     if (response.isSuccessful && body != null) {
-                        _uiState.value = OcrUiState.Success(body.file_name, body.csv, true)
+                        _uiState.value = OcrUiState.Success(body.csv, true)
                     } else { throw Exception("Chart conversion API failed") }
                 } else {
                     val response = ApiClient.service.uploadOcrImage(multipartBody)
                     val body = response.body()
                     if (response.isSuccessful && body != null) {
-                        // 英文パターンの場合、fileUrlは不要なので空文字を渡す
-                        _uiState.value = OcrUiState.Success("", body.pattern, false)
+                        _uiState.value = OcrUiState.Success(body.pattern, false)
                     } else { throw Exception("OCR API failed") }
                 }
             } catch (e: Exception) {

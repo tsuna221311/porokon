@@ -17,7 +17,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * 英文パターン修正画面のUIが取りうる状態を定義します。
  */
 sealed interface EditEnglishPatternUiState {
-    object InitialLoading : EditEnglishPatternUiState // ★★★ UIが期待しているこの状態を追加 ★★★
+    object InitialLoading : EditEnglishPatternUiState
     data class Success(val text: String) : EditEnglishPatternUiState
     object Saving : EditEnglishPatternUiState
     data class SaveSuccess(val newFileUrl: String) : EditEnglishPatternUiState
@@ -52,7 +52,28 @@ class EditEnglishPatternViewModel(
     }
 
     /**
+     * 「編み図に変換して修正する」ボタンが押されたときにUIから呼び出されます。
+     * EditEnglishPatternScreenから呼び出せるように、この関数を追加しました。
+     */
+    fun convertEnglishToCsvString(): String {
+        val currentState = _uiState.value
+        val currentText = if (currentState is EditEnglishPatternUiState.Success) {
+            currentState.text
+        } else {
+            ""
+        }
+        // ここで英文をCSVに変換するロジックを実装します。
+        // 例として、改行をカンマに置換する単純な処理を記述します。
+        return currentText
+            .split('\n')
+            .filter { it.isNotBlank() }
+            .joinToString(separator = ",")
+    }
+
+
+    /**
      * 「この内容で確定する」ボタンが押されたときにUIから呼び出されます。
+     * (この関数は今回のエラー修正とは直接関係ありませんが、元のコードにあったため残しています)
      */
     fun saveEditedPattern(editedText: String) {
         viewModelScope.launch {

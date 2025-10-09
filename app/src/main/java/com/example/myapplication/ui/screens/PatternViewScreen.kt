@@ -67,7 +67,7 @@ fun PatternViewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("編み図プレビュー (ダミー)", fontWeight = FontWeight.Bold) },
+                title = { Text("編み図プレビュー", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")

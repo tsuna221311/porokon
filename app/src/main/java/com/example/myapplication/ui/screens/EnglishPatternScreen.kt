@@ -1,13 +1,17 @@
 package com.example.myapplication.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.PrimaryTeal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,22 +33,37 @@ fun EnglishPatternScreen(
     viewModel: EnglishPatternViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val translatedPattern = uiState.translatedPattern
-    val currentStep = uiState.highlightedRow
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("英文パターン (ダミー)") },
+                title = { Text("英文パターン") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                    }
+                },
+                // ★★★ 修正点1: トップバーにアクションボタンを追加 ★★★
+                actions = {
+                    // 成功状態のときのみ「編集」ボタンを表示
+                    if (uiState is EnglishPatternUiState.Success) {
+                        IconButton(onClick = {
+                            // ViewModelが保持している元のCSVデータを取得
+                            val csvContent = (uiState as EnglishPatternUiState.Success).originalCsv
+                            if (csvContent.isNotBlank()) {
+                                val encodedCsv = Uri.encode(csvContent)
+                                // 「編み図を修正」画面へ遷移
+                                navController.navigate(Screen.EditOcrResult.createRoute(true, encodedCsv))
+                            }
+                        }) {
+                            Icon(Icons.Default.Edit, contentDescription = "修正する")
+                        }
                     }
                 }
             )
         },
         bottomBar = {
-            if (translatedPattern != null) {
+            if (uiState is EnglishPatternUiState.Success) {
                 BottomAppBar(containerColor = Color.White) {
                     TextButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "コピー")
@@ -54,46 +74,79 @@ fun EnglishPatternScreen(
             }
         }
     ) { padding ->
-        if (uiState.isLoading || translatedPattern == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when (val state = uiState) {
+            is EnglishPatternUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.padding(padding).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+            is EnglishPatternUiState.Success -> {
+                PatternContent(
+                    state = state,
+                    modifier = Modifier.padding(padding)
+                )
+            }
+            is EnglishPatternUiState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "エラーが発生しました。\n${state.message}",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PatternContent(
+    state: EnglishPatternUiState.Success,
+    modifier: Modifier = Modifier
+) {
+    // (この部分のコードは変更ありません)
+    val translatedPattern = state.translatedPattern
+    val currentStep = state.highlightedRow
+
+    LazyColumn(
+        modifier = modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        item {
+            Text("Abbreviations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        items(translatedPattern.abbreviations.toList()) { (abbr, desc) ->
+            Row {
+                Text("${abbr.uppercase()}: ", fontWeight = FontWeight.Bold)
+                Text(desc)
+            }
+        }
+
+        item {
+            Text("Instructions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        itemsIndexed(translatedPattern.instructions) { index, instruction ->
+            val isHighlighted = index == currentStep
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (isHighlighted) PrimaryTeal.copy(alpha = 0.1f) else Color.Transparent,
+                        RoundedCornerShape(4.dp)
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = if (isHighlighted) PrimaryTeal else Color.Transparent,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(8.dp)
             ) {
-                item {
-                    Text("Abbreviations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        translatedPattern.abbreviations.forEach { (abbr, desc) ->
-                            Row {
-                                Text("${abbr.uppercase()}: ", fontWeight = FontWeight.Bold)
-                                Text(desc)
-                            }
-                        }
-                    }
-                }
-                item {
-                    Text("Instructions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        translatedPattern.instructions.forEachIndexed { index, instruction ->
-                            val isHighlighted = index == currentStep
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(if (isHighlighted) PrimaryTeal.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(4.dp))
-                                    .border(width = 2.dp, color = if (isHighlighted) PrimaryTeal else Color.Transparent, shape = RoundedCornerShape(4.dp))
-                                    .padding(8.dp)
-                            ) {
-                                Text("Row ${index + 1}: ", fontWeight = FontWeight.Bold)
-                                Text(instruction)
-                            }
-                        }
-                    }
-                }
+                Text("Row ${index + 1}: ", fontWeight = FontWeight.Bold)
+                Text(instruction)
             }
         }
     }

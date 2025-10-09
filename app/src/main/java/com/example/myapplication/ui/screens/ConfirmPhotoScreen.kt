@@ -34,7 +34,7 @@ fun ConfirmPhotoScreen(
                 Toast.makeText(context, "解析成功！", Toast.LENGTH_SHORT).show()
                 viewModel.resetState()
 
-                // isChartフラグで遷移先を判断するロジックは変わらない
+                // isChartフラグと、解析結果のテキストを次の画面に渡す
                 val encodedContent = Uri.encode(state.initialContent)
                 navController.navigate(Screen.EditOcrResult.createRoute(state.isChart, encodedContent)) {
                     popUpTo(Screen.ConfirmPhoto.route) { inclusive = true }
