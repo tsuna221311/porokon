@@ -11,7 +11,6 @@ import com.example.myapplication.ui.screens.*
 
 /**
  * アプリ内の画面遷移ルートを定義する Sealed Class。
- * 文字列を直接使うよりもタイプミスを防げて安全です。
  */
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
@@ -19,15 +18,23 @@ sealed class Screen(val route: String) {
     object PatternView : Screen("pattern_view/{workId}") {
         fun createRoute(workId: Int) = "pattern_view/$workId"
     }
+
+    // --- 新規作成フロー ---
     object SelectMode : Screen("select_mode")
-    object OcrCapture : Screen("ocr_capture")
-    object ConfirmPhoto : Screen("confirm_photo/{photoUri}") {
-        fun createRoute(photoUri: String) = "confirm_photo/$photoUri"
+    object CaptureChart : Screen("capture_chart")
+    object CaptureEnglishPattern : Screen("capture_english_pattern")
+
+    object ConfirmPhoto : Screen("confirm_photo/{isChart}/{photoUri}") {
+        fun createRoute(isChart: Boolean, photoUri: String) = "confirm_photo/$isChart/$photoUri"
+    }
+    object EditOcrResult : Screen("edit_ocr_result/{isChart}/{csvUrl}") {
+        fun createRoute(isChart: Boolean, csvUrl: String) = "edit_ocr_result/$isChart/$csvUrl"
     }
     object SavePattern : Screen("save_pattern/{fileUrl}") {
         fun createRoute(fileUrl: String) = "save_pattern/$fileUrl"
     }
-    // ★★★ 修正: highlightedRowを引数として受け取るように変更 ★★★
+
+    // --- その他 ---
     object EnglishPattern : Screen("english_pattern/{highlightedRow}") {
         fun createRoute(highlightedRow: Int) = "english_pattern/$highlightedRow"
     }
@@ -36,11 +43,6 @@ sealed class Screen(val route: String) {
     }
 }
 
-/**
- * アプリ全体のナビゲーショングラフを定義するComposable。
- * @param navController アプリケーションのナビゲーションを制御します。
- * @param onMenuClick サイドメニューを開くためのアクションを伝達します。
- */
 @Composable
 fun AppNavigation(
     navController: NavHostController,
@@ -52,6 +54,7 @@ fun AppNavigation(
             DashboardScreen(
                 navController = navController,
                 onMenuClick = onMenuClick,
+                // ★★★ 修正: 不足していたviewModelを渡す ★★★
                 dashboardViewModel = viewModel()
             )
         }
@@ -67,32 +70,57 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
-            // ダミーデータを表示するバージョンのPatternViewScreenを呼び出す
-            PatternViewScreen(
-                navController = navController
+            PatternDetailScreen(
+                navController = navController,
+                viewModel = viewModel()
             )
         }
 
         // --- 新規作成フロー ---
         composable(Screen.SelectMode.route) {
             SelectModeScreen(
-                onNavigateToCamera = { navController.navigate(Screen.OcrCapture.route) },
+                onNavigateToChartCapture = { navController.navigate(Screen.CaptureChart.route) },
+                onNavigateToEnglishCapture = { navController.navigate(Screen.CaptureEnglishPattern.route) },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        composable(Screen.OcrCapture.route) {
-            OcrScreen(navController = navController)
+        composable(Screen.CaptureChart.route) {
+            CaptureChartScreen(navController = navController)
         }
+        composable(Screen.CaptureEnglishPattern.route) {
+            CaptureEnglishPatternScreen(navController = navController)
+        }
+
         composable(
             route = Screen.ConfirmPhoto.route,
-            arguments = listOf(navArgument("photoUri") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("isChart") { type = NavType.BoolType },
+                navArgument("photoUri") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
-            val photoUri = backStackEntry.arguments?.getString("photoUri")
             ConfirmPhotoScreen(
                 navController = navController,
-                photoUri = photoUri
+                photoUri = backStackEntry.arguments?.getString("photoUri"),
+                isChart = backStackEntry.arguments?.getBoolean("isChart") ?: false
             )
         }
+
+        composable(
+            route = Screen.EditOcrResult.route,
+            arguments = listOf(
+                navArgument("isChart") { type = NavType.BoolType },
+                navArgument("csvUrl") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val isChart = backStackEntry.arguments?.getBoolean("isChart") ?: false
+            if (isChart) {
+                // ★★★ 修正: 不要な 'isNewPattern' 引数を削除 ★★★
+                PatternEditScreen(navController = navController)
+            } else {
+                EditEnglishPatternScreen(navController = navController)
+            }
+        }
+
         composable(
             route = Screen.SavePattern.route,
             arguments = listOf(navArgument("fileUrl") { type = NavType.StringType })
@@ -103,26 +131,24 @@ fun AppNavigation(
                         popUpTo(Screen.Dashboard.route) { inclusive = true }
                     }
                 },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // --- その他 ---
-        // ★★★ 修正: EnglishPatternのルート定義に引数を追加 ★★★
+        // --- その他 (既存作品の編集) ---
+        composable(
+            route = Screen.PatternEdit.route,
+            arguments = listOf(navArgument("workId") { type = NavType.IntType })
+        ) {
+            // ★★★ 修正: 不要な 'isNewPattern' 引数を削除 ★★★
+            PatternEditScreen(navController = navController)
+        }
+
         composable(
             route = Screen.EnglishPattern.route,
             arguments = listOf(navArgument("highlightedRow") { type = NavType.IntType })
         ) {
             EnglishPatternScreen(navController = navController)
         }
-        composable(
-            route = Screen.PatternEdit.route,
-            arguments = listOf(navArgument("workId") { type = NavType.IntType })
-        ) {
-            PatternEditScreen(navController = navController)
-        }
     }
 }
-

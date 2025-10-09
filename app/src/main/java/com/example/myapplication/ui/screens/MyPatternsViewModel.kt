@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// MyPatterns画面のUI状態
+// MyPatterns画面のUI状態を定義
 sealed interface MyPatternsUiState {
     data class Success(val works: List<Work>) : MyPatternsUiState
     object Error : MyPatternsUiState
@@ -30,7 +30,7 @@ class MyPatternsViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = MyPatternsUiState.Loading
             try {
-                // APIを呼び出して作品リストを取得
+                // APIを呼び出して作品リストをすべて取得
                 val response = ApiClient.service.getAllWorks()
                 if (response.isSuccessful) {
                     _uiState.value = MyPatternsUiState.Success(response.body() ?: emptyList())
@@ -44,3 +44,4 @@ class MyPatternsViewModel : ViewModel() {
         }
     }
 }
+

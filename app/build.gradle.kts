@@ -75,6 +75,10 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     // Extended Material Icons for Compose
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
     // ★★★ CameraX ライブラリを追加 ★★★
     val cameraxVersion = "1.3.4" // 最新バージョンを確認してください

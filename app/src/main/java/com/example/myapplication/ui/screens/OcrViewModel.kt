@@ -17,11 +17,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * OCR（画像アップロード）フローのUIが取りうる状態を定義します。
+ * 成功時のデータを一つのクラスにまとめ、isChartフラグで種類を判別します。
  */
 sealed interface OcrUiState {
     object Standby : OcrUiState
     object Loading : OcrUiState
-    data class Success(val fileUrl: String) : OcrUiState
+    data class Success(val fileUrl: String, val initialContent: String, val isChart: Boolean) : OcrUiState
     data class Error(val message: String) : OcrUiState
 }
 
@@ -29,56 +30,42 @@ class OcrViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<OcrUiState>(OcrUiState.Standby)
     val uiState: StateFlow<OcrUiState> = _uiState.asStateFlow()
 
-    /**
-     * URIで指定された画像をAPIサーバーにアップロードします。
-     */
-    fun uploadImage(uri: Uri, contentResolver: ContentResolver) {
+    fun uploadImage(uri: Uri, contentResolver: ContentResolver, isChart: Boolean) {
         viewModelScope.launch {
             _uiState.value = OcrUiState.Loading
             try {
-                // URIから画像データを読み込み、API送信用に変換
-                val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open input stream from URI.")
+                // --- 画像データの準備 (共通) ---
+                val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open input stream")
                 val requestBody = inputStream.readBytes().toRequestBody("image/jpeg".toMediaTypeOrNull())
-
-                // ファイル名を取得
                 val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     cursor.moveToFirst()
                     cursor.getString(nameIndex)
                 } ?: "image.jpg"
-
-                // サーバーが受け取れる形式(Multipart)の部品を作成
                 val multipartBody = MultipartBody.Part.createFormData("file", fileName, requestBody)
 
-                // APIクライアントを呼び出して、実際に画像をアップロード
-                val response = ApiClient.service.uploadImage(multipartBody)
-                val responseBody = response.body()
-
-                // APIからのレスポンスを安全に処理
-                if (response.isSuccessful && responseBody != null) {
-                    // csv_urlがnullでないことを確認してからSuccess状態にする
-                    val csvUrl = responseBody.file_name
-                    if (!csvUrl.isNullOrBlank()) {
-                        _uiState.value = OcrUiState.Success(csvUrl)
-                    } else {
-                        // 通信は成功したが、期待したURLが含まれていなかった場合
-                        throw Exception("API response is successful but csv_url is null or empty.")
-                    }
+                // isChartの値に応じてAPIを呼び分ける
+                if (isChart) {
+                    val response = ApiClient.service.uploadChartImage(multipartBody)
+                    val body = response.body()
+                    if (response.isSuccessful && body != null) {
+                        _uiState.value = OcrUiState.Success(body.file_name, body.csv, true)
+                    } else { throw Exception("Chart conversion API failed") }
                 } else {
-                    // APIがエラーを返した場合
-                    throw Exception("Upload failed: ${response.message()}")
+                    val response = ApiClient.service.uploadOcrImage(multipartBody)
+                    val body = response.body()
+                    if (response.isSuccessful && body != null) {
+                        // 英文パターンの場合、fileUrlは不要なので空文字を渡す
+                        _uiState.value = OcrUiState.Success("", body.pattern, false)
+                    } else { throw Exception("OCR API failed") }
                 }
             } catch (e: Exception) {
-                // 通信失敗など、何か問題が起きたらUIを「エラー」状態にする
                 Log.e("OcrViewModel", "Error uploading image", e)
-                _uiState.value = OcrUiState.Error("画像のアップロードに失敗しました。")
+                _uiState.value = OcrUiState.Error("画像の解析に失敗しました。")
             }
         }
     }
 
-    /**
-     * UIの状態を初期状態に戻します。
-     */
     fun resetState() {
         _uiState.value = OcrUiState.Standby
     }

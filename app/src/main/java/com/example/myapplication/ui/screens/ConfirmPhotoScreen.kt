@@ -19,9 +19,9 @@ import com.example.myapplication.ui.navigation.Screen
 fun ConfirmPhotoScreen(
     navController: NavController,
     photoUri: String?,
+    isChart: Boolean,
     viewModel: OcrViewModel = viewModel()
 ) {
-    // ナビゲーションから渡されたURI文字列をUriオブジェクトに変換
     val uri = remember(photoUri) { photoUri?.let { Uri.parse(it) } }
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -29,16 +29,20 @@ fun ConfirmPhotoScreen(
     // ViewModelの状態が変化したときの副作用（画面遷移やToast表示）を処理
     LaunchedEffect(uiState) {
         when (val state = uiState) {
+            // ★★★ 修正: 成功状態を 'Success' 一つでハンドリング ★★★
             is OcrUiState.Success -> {
-                Toast.makeText(context, "アップロード成功！", Toast.LENGTH_SHORT).show()
-                viewModel.resetState() // 状態をリセット
-                val encodedUrl = Uri.encode(state.fileUrl)
-                // 成功したら、返ってきたURLを付けて作品保存画面へ遷移
-                navController.navigate(Screen.SavePattern.createRoute(encodedUrl))
+                Toast.makeText(context, "解析成功！", Toast.LENGTH_SHORT).show()
+                viewModel.resetState()
+
+                // isChartフラグで遷移先を判断するロジックは変わらない
+                val encodedContent = Uri.encode(state.initialContent)
+                navController.navigate(Screen.EditOcrResult.createRoute(state.isChart, encodedContent)) {
+                    popUpTo(Screen.ConfirmPhoto.route) { inclusive = true }
+                }
             }
             is OcrUiState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                viewModel.resetState() // 状態をリセット
+                viewModel.resetState()
             }
             else -> { /* Standby, Loading時には何もしない */ }
         }
@@ -48,7 +52,6 @@ fun ConfirmPhotoScreen(
         topBar = { TopAppBar(title = { Text("写真の確認") }) }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            // 撮影された写真を画面に表示
             if (uri != null) {
                 AsyncImage(
                     model = uri,
@@ -63,14 +66,12 @@ fun ConfirmPhotoScreen(
                 }
             }
 
-            // 「撮り直す」と「OK」ボタン
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                // 「撮り直す」ボタン
                 Button(
                     onClick = { navController.popBackStack() },
                     enabled = uiState !is OcrUiState.Loading
@@ -78,12 +79,10 @@ fun ConfirmPhotoScreen(
                     Text("撮り直す")
                 }
 
-                // 「OK」ボタン
                 Button(
                     onClick = {
                         if (uri != null) {
-                            // ViewModelに画像アップロードを依頼
-                            viewModel.uploadImage(uri, context.contentResolver)
+                            viewModel.uploadImage(uri, context.contentResolver, isChart)
                         } else {
                             Toast.makeText(context, "画像がありません。", Toast.LENGTH_SHORT).show()
                         }

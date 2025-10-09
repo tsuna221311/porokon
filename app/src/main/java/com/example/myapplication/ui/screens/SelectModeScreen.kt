@@ -14,20 +14,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.ui.theme.PrimaryTeal
 
-/**
- * この画面は、API実装を前提とした完成されたUIコンポーネントです。
- * ダミーコードは含まれていません。
- *
- * 役割：
- * 1. ユーザーにスキャンモードの選択肢を提示する。
- * 2. 選択された結果や操作（「戻る」など）を、外部のナビゲーション担当に通知する。
- *
- * API通信などのロジックは、この画面からは分離されています。
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectModeScreen(
-    onNavigateToCamera: () -> Unit,
+    onNavigateToChartCapture: () -> Unit,
+    onNavigateToEnglishCapture: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     Scaffold(
@@ -35,7 +26,6 @@ fun SelectModeScreen(
             TopAppBar(
                 title = { Text("新規作成") },
                 navigationIcon = {
-                    // 「戻る」ボタンが押されたことを外部に通知する
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
@@ -60,15 +50,14 @@ fun SelectModeScreen(
             ModeButton(
                 title = "記号編み図をスキャン",
                 description = "日本の編み図や手書きのチャートを読み取ります。",
-                // ボタンが押されたことを外部に通知する
-                onClick = onNavigateToCamera
+                onClick = onNavigateToChartCapture // 記号編み図用のカメラ画面へ
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             ModeButton(
                 title = "英文パターンをスキャン",
                 description = "海外の文章形式のパターンを読み取ります。",
-                onClick = onNavigateToCamera
+                onClick = onNavigateToEnglishCapture // 英文パターン用のカメラ画面へ
             )
         }
     }
