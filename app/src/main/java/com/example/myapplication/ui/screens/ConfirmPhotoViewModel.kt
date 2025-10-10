@@ -34,6 +34,7 @@ class OcrViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = OcrUiState.Loading
             try {
+
                 // --- 画像データの準備 (共通) ---
                 val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open input stream")
                 val requestBody = inputStream.readBytes().toRequestBody("image/jpeg".toMediaTypeOrNull())
