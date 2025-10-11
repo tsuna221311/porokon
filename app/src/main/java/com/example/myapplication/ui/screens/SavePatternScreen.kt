@@ -2,41 +2,40 @@ package com.example.myapplication.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.ui.theme.PrimaryTeal
+import androidx.navigation.NavController
+import com.example.myapplication.ui.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavePatternScreen(
-    onSaveComplete: () -> Unit,
-    onNavigateBack: () -> Unit,
-    viewModel: RegisterWorkViewModel = viewModel()
+    navController: NavController,
+    viewModel: SavePatternViewModel = viewModel()
 ) {
-    var title by remember { mutableStateOf("") }
-    var memo by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // ViewModelの状態が変化したときに副作用（画面遷移やToast表示）を実行
+    // 保存成功時やエラー発生時の処理
     LaunchedEffect(uiState) {
-        when (val state = uiState) {
-            is RegisterWorkUiState.Success -> {
-                Toast.makeText(context, "保存しました！", Toast.LENGTH_SHORT).show()
-                onSaveComplete()
+        if (uiState.isSaveSuccess) {
+            Toast.makeText(context, "作品を保存しました！", Toast.LENGTH_SHORT).show()
+            // 保存が完了したら、全ての画面を閉じてダッシュボードに戻る
+            navController.navigate(Screen.Dashboard.route) {
+                popUpTo(Screen.Dashboard.route) { inclusive = true }
             }
-            is RegisterWorkUiState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-            }
-            else -> { /* Standby, Loading時には何もしない */ }
+        }
+        uiState.error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
         }
     }
 
@@ -45,7 +44,7 @@ fun SavePatternScreen(
             TopAppBar(
                 title = { Text("作品を保存") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 }
@@ -55,56 +54,50 @@ fun SavePatternScreen(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize()
                 .padding(16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
                 text = "新しい作品に名前をつけよう",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                modifier = Modifier.fillMaxWidth(),
+                value = uiState.title,
+                onValueChange = { viewModel.onTitleChange(it) },
                 label = { Text("タイトル") },
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                enabled = uiState !is RegisterWorkUiState.Loading
+                isError = uiState.title.isBlank() && uiState.error != null
             )
-            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = memo,
-                onValueChange = { memo = it },
+                value = uiState.memo,
+                onValueChange = { viewModel.onMemoChange(it) },
+                label = { Text("メモ") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
-                label = { Text("メモ") },
-                enabled = uiState !is RegisterWorkUiState.Loading
+                    .height(150.dp)
             )
-            Spacer(modifier = Modifier.height(32.dp))
+
+            Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = {
-                    if (title.isNotBlank()) {
-                        viewModel.registerNewWork(title, memo)
-                    } else {
-                        Toast.makeText(context, "タイトルを入力してください", Toast.LENGTH_SHORT).show()
-                    }
-                },
+                onClick = { viewModel.saveWork() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                enabled = uiState !is RegisterWorkUiState.Loading
+                enabled = !uiState.isLoading
             ) {
-                if (uiState is RegisterWorkUiState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 } else {
-                    Text("保存", fontWeight = FontWeight.SemiBold)
+                    Text("送信 (保存)")
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.screens
 
 import android.net.Uri
+import android.util.Base64
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -22,21 +24,24 @@ fun EditEnglishPatternScreen(
     viewModel: EditEnglishPatternViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    // 編集中のテキストを保持する状態。初期値はnull。
-    var editedText by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    // uiStateがSuccessの場合に、そのテキストをeditedTextに一度だけ設定する
+    // 保存成功時の画面遷移
     LaunchedEffect(uiState) {
-        if (uiState is EditEnglishPatternUiState.Success && editedText == null) {
-            editedText = (uiState as EditEnglishPatternUiState.Success).text
+        val currentState = uiState
+        if (currentState is EditEnglishPatternUiState.SaveSuccess) {
+            // 保存画面へ遷移
+            navController.navigate(Screen.SavePattern.createRoute(currentState.newFileUrl)) {
+                // ConfirmPhoto画面までスタックをクリアする
+                popUpTo(Screen.ConfirmPhoto.route) { inclusive = true }
+            }
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("英文パターンの確認・修正") },
+                title = { Text("英文パターンを修正") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
@@ -44,69 +49,70 @@ fun EditEnglishPatternScreen(
                 }
             )
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            when (val state = uiState) {
-                is EditEnglishPatternUiState.Success -> {
+    ) { paddingValues ->
+        when (val state = uiState) {
+            is EditEnglishPatternUiState.InitialLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is EditEnglishPatternUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(state.message)
+                }
+            }
+            is EditEnglishPatternUiState.Success -> {
+                Column(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("OCRの解析結果", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
                     OutlinedTextField(
-                        value = editedText ?: "",
-                        onValueChange = {
-                            editedText = it
-                            // テキストが変更されるたびにViewModelの状態も更新
-                            viewModel.onTextChanged(it)
-                        },
+                        value = state.text,
+                        onValueChange = { viewModel.onTextChanged(it) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        label = { Text("OCRで読み取ったテキスト") }
+                        label = { Text("編み方テキスト") }
                     )
-                    Button(
-                        onClick = {
-                            // ViewModelから最新のCSV文字列を取得
-                            val csvContent = viewModel.convertEnglishToCsvString()
-                            // ★★★ 修正点1: 空白でないかをチェック ★★★
-                            if (csvContent.isNotBlank()) {
-                                // データをエンコードして次の画面に渡す
-                                val encodedCsv = Uri.encode(csvContent)
-                                navController.navigate(Screen.EditOcrResult.createRoute(true, encodedCsv))
-                            } else {
-                                // ★★★ 修正点2: データが空の場合にユーザーに通知 ★★★
-                                Toast.makeText(context, "テキストが空です。何か入力してください。", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        // ★★★ 改善点: テキストが入力されていない場合はボタンを無効化 ★★★
-                        enabled = !editedText.isNullOrBlank(),
-                        modifier = Modifier.fillMaxWidth()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("編み図に変換して修正する")
+                        Button(
+                            onClick = {
+                                val csvString = viewModel.convertEnglishToCsvString()
+                                // Base64エンコードして安全に渡す
+                                val encodedContent = Base64.encodeToString(csvString.toByteArray(), Base64.NO_WRAP)
+                                navController.navigate(Screen.EditOcrResult.createRoute(true, encodedContent))
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("編み図に変換して修正")
+                        }
+
+                        Button(
+                            onClick = { viewModel.saveEditedPattern(state.text) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("この内容で確定")
+                        }
                     }
-                }
-                is EditEnglishPatternUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(state.message)
-                    }
-                }
-                is EditEnglishPatternUiState.InitialLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                // 以下は網羅性のための記述
-                is EditEnglishPatternUiState.Saving -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is EditEnglishPatternUiState.SaveSuccess -> {
-                    // この画面では基本起こらないが念のため
                 }
             }
+            is EditEnglishPatternUiState.Saving -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                    Text("保存中...")
+                }
+            }
+            // SaveSuccess時はLaunchedEffectで遷移
+            is EditEnglishPatternUiState.SaveSuccess -> {}
         }
     }
 }

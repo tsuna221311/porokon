@@ -1,6 +1,11 @@
 package com.example.myapplication.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,99 +16,71 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.myapplication.ui.components.PatternChart
 import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.BgBase
 import com.example.myapplication.ui.theme.PrimaryTeal
 
-// プレビュー用のダミー編み図データ（表面）
-val dummyPatternFromImage = listOf(
-    listOf("p", "p", "-", "-", "k", "k", "k", "-"),
-    listOf("p", "p", "-", "-", "k2tog", "^", "k", "-"),
-    listOf("p", "p", "-", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "-", "ssk", "^", "k", "k", "k"),
-    listOf("p", "p", "-", "k", "k", "k", "k", "k"),
-    listOf("p", "p", "-", "k", "k2tog", "^", "k", "k"),
-    listOf("p", "p", "ssk", "^", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k2tog", "^", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k"),
-    listOf("p", "p", "p", "-", "k", "k", "k", "k")
-).reversed()
-
-// 裏面の編み図データを生成するロジック
-val dummyPatternReverse = dummyPatternFromImage.map { row ->
-    row.map { symbol ->
-        when (symbol) {
-            "k" -> "p"
-            "p" -> "k"
-            "k2tog" -> "p2tog"
-            "ssk" -> "ssp"
-            else -> symbol
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatternViewScreen(
-    navController: NavController
+fun PatternViewScreen( // 関数名をファイル名に合わせて変更
+    navController: NavController,
+    viewModel: PatternDetailViewModel = viewModel()
 ) {
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    var highlightedRow by remember { mutableStateOf(3) }
-    var currentStitch by remember { mutableStateOf(5) }
+    val uiState by viewModel.uiState.collectAsState()
+    val work = uiState.work
 
-    val currentPattern = if (selectedTabIndex == 0) {
-        dummyPatternFromImage
-    } else {
-        dummyPatternReverse
-    }
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val currentPattern = uiState.patternData
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("編み図プレビュー", fontWeight = FontWeight.Bold) },
+                title = { Text(text = work?.title ?: "読み込み中...") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.EnglishPattern.createRoute(highlightedRow)) }) {
+                    IconButton(onClick = {
+                        navController.navigate(Screen.EnglishPattern.route)
+                    }) {
                         Icon(Icons.Default.Translate, contentDescription = "翻訳")
                     }
-                    IconButton(onClick = {}, enabled = false) {
+                    IconButton(onClick = { navController.navigate(Screen.PatternEdit.createRoute(work?.id ?: 0)) }) {
                         Icon(Icons.Default.Edit, contentDescription = "修正")
                     }
                 }
             )
-        },
-        containerColor = BgBase
+        }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-        ) {
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("表面") })
-                Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("裏面") })
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-
+        } else if (work != null) {
             Column(
                 modifier = Modifier
+                    .padding(paddingValues)
                     .fillMaxSize()
+                    .background(BgBase)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("表面") })
+                    Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("裏面") })
+                }
+
                 PatternChart(
                     pattern = currentPattern,
-                    highlightedRow = highlightedRow,
+                    highlightedRow = work.raw_index,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -116,52 +93,109 @@ fun PatternViewScreen(
                         modifier = Modifier.padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("現在の段数", fontWeight = FontWeight.SemiBold)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                CounterButton(text = "-") { if (highlightedRow > 0) highlightedRow-- }
-                                Text(
-                                    text = (highlightedRow + 1).toString(),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryTeal
-                                )
-                                CounterButton(text = "+") { if (highlightedRow < currentPattern.size - 1) highlightedRow++ }
-                            }
-                        }
+                        CompactCounterRow(
+                            label = "現在の段数",
+                            count = work.raw_index + 1,
+                            onDecrement = { viewModel.decrementRow() },
+                            onIncrement = { viewModel.incrementRow() }
+                        )
 
                         HorizontalDivider(color = BgBase, thickness = 1.dp)
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("現在の目数", fontWeight = FontWeight.SemiBold)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                CounterButton(text = "-") { if (currentStitch > 0) currentStitch-- }
-                                Text(
-                                    text = (currentStitch + 1).toString(),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryTeal
-                                )
-                                CounterButton(text = "+") { currentStitch++ }
-                            }
+                        CompactCounterRow(
+                            label = "現在の目数",
+                            count = work.stitch_index + 1,
+                            onDecrement = { viewModel.decrementStitch() },
+                            onIncrement = { viewModel.incrementStitch() }
+                        )
+                    }
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(uiState.error ?: "エラーが発生しました。")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PatternChart(
+    pattern: List<List<String>>,
+    highlightedRow: Int,
+    modifier: Modifier = Modifier
+) {
+    val symbolMap = mapOf(
+        "k" to "｜", "p" to "—", "k2tog" to "╱", "ssk" to "╲", "yo" to "○", "k3tog" to "＞"
+    )
+    val highlightColor = PrimaryTeal.copy(alpha = 0.2f)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (pattern.all { it.isEmpty() }) {
+            Text("編み図データがありません", color = Color.Gray)
+        } else {
+            val columnCount = pattern.maxOfOrNull { it.size }?.takeIf { it > 0 } ?: 1
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnCount),
+                userScrollEnabled = true
+            ) {
+                itemsIndexed(pattern.flatten()) { index, symbol ->
+                    val rowIndex = index / columnCount
+                    val backgroundColor = if (rowIndex == highlightedRow) highlightColor else Color.Transparent
+                    Box(
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .background(backgroundColor)
+                            .border(0.5.dp, Color.LightGray.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (symbol != "^" && symbol != "-") {
+                            Text(
+                                text = symbolMap[symbol] ?: symbol,
+                                color = Color.DarkGray, fontSize = 18.sp, fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CompactCounterRow(
+    label: String,
+    count: Int,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, fontWeight = FontWeight.SemiBold)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CounterButton(text = "-") { onDecrement() }
+            Text(
+                text = count.toString(),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryTeal
+            )
+            CounterButton(text = "+") { onIncrement() }
         }
     }
 }
@@ -178,4 +212,5 @@ private fun CounterButton(text: String, onClick: () -> Unit) {
         Text(text, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
 

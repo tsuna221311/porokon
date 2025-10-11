@@ -20,8 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.PrimaryTeal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,20 +35,26 @@ fun PatternEditScreen(
     val uiState by patternEditViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // 保存成功時に前の画面に戻る
+    // ★★★ ここから修正箇所 ★★★
+    // ViewModelの状態が変化したときの副作用（画面遷移やToast表示）を処理
     LaunchedEffect(uiState) {
-        if (uiState is PatternEditUiState.SaveSuccess) {
-            Toast.makeText(context, "保存しました！", Toast.LENGTH_SHORT).show()
-            navController.popBackStack()
-        }
-        if (uiState is PatternEditUiState.Error) {
-            Toast.makeText(context, (uiState as PatternEditUiState.Error).message, Toast.LENGTH_LONG).show()
+        // uiStateをローカル変数にコピーして、安全に型チェックを行う
+        when (val state = uiState) {
+            is PatternEditUiState.SaveSuccess -> {
+                // stateはSaveSuccess型だと保証されている
+                navController.navigate(Screen.SavePattern.createRoute(state.finalFileName))
+            }
+            is PatternEditUiState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+            }
+            // 他の状態の場合は何もしない
+            else -> {}
         }
     }
+    // ★★★ ここまで修正箇所 ★★★
 
     Scaffold(
         topBar = {
-            // ★★★ 修正: `when`を使って、状態がSuccessの場合のみボタンを有効化 ★★★
             val canInteract = uiState is PatternEditUiState.Success
             val successState = uiState as? PatternEditUiState.Success
 
@@ -74,7 +82,6 @@ fun PatternEditScreen(
             )
         }
     ) { paddingValues ->
-        // ★★★ 修正: `when`を使って、ViewModelの状態に応じてUIを切り替える ★★★
         when (val state = uiState) {
             is PatternEditUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -87,6 +94,17 @@ fun PatternEditScreen(
                 }
             }
             is PatternEditUiState.Success -> {
+                val symbolMap = mapOf(
+                    "k" to "｜",
+                    "p" to "—",
+                    "k2tog" to "╱",
+                    "ssk" to "╲",
+                    "yo" to "○",
+                    "#rows" to "",
+                    "#cols" to "",
+                    "0\"" to ""
+                )
+
                 Column(
                     modifier = Modifier
                         .padding(paddingValues)
@@ -116,7 +134,14 @@ fun PatternEditScreen(
                                     .clickable { patternEditViewModel.onCellClicked(row, col) },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(text = symbol, fontWeight = if (symbol != "-") FontWeight.Bold else FontWeight.Normal)
+                                if (symbol != "^" && symbol != "-") {
+                                    Text(
+                                        text = symbolMap[symbol] ?: symbol,
+                                        color = Color.DarkGray,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -148,10 +173,9 @@ fun PatternEditScreen(
                     }
                 }
             }
-            // SaveSuccess時はLaunchedEffectで画面遷移するので、UIは表示しない
             is PatternEditUiState.SaveSuccess -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator() // 保存後の処理中を示す
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -176,4 +200,3 @@ fun SymbolPalette(selectedSymbol: String, onSymbolSelected: (String) -> Unit) {
         }
     }
 }
-

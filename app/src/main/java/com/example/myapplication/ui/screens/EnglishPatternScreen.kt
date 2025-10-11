@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.logic.TranslatedPattern
 import com.example.myapplication.ui.navigation.Screen
 import com.example.myapplication.ui.theme.PrimaryTeal
 
@@ -43,13 +44,13 @@ fun EnglishPatternScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
-                // ★★★ 修正点1: トップバーにアクションボタンを追加 ★★★
                 actions = {
                     // 成功状態のときのみ「編集」ボタンを表示
-                    if (uiState is EnglishPatternUiState.Success) {
+                    val successState = uiState as? EnglishPatternUiState.Success
+                    if (successState != null) {
                         IconButton(onClick = {
                             // ViewModelが保持している元のCSVデータを取得
-                            val csvContent = (uiState as EnglishPatternUiState.Success).originalCsv
+                            val csvContent = successState.originalCsv
                             if (csvContent.isNotBlank()) {
                                 val encodedCsv = Uri.encode(csvContent)
                                 // 「編み図を修正」画面へ遷移
@@ -65,7 +66,7 @@ fun EnglishPatternScreen(
         bottomBar = {
             if (uiState is EnglishPatternUiState.Success) {
                 BottomAppBar(containerColor = Color.White) {
-                    TextButton(onClick = { /* TODO */ }) {
+                    TextButton(onClick = { /* TODO: クリップボードにコピーする処理を実装 */ }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "コピー")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("パターンをコピー")
@@ -106,8 +107,7 @@ private fun PatternContent(
     state: EnglishPatternUiState.Success,
     modifier: Modifier = Modifier
 ) {
-    // (この部分のコードは変更ありません)
-    val translatedPattern = state.translatedPattern
+    val translatedPattern = state.translatedPattern ?: return // 念のためnullチェック
     val currentStep = state.highlightedRow
 
     LazyColumn(

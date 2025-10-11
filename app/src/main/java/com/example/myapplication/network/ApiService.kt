@@ -20,6 +20,8 @@ interface ApiService {
     suspend fun changeDisplayName(@Body request: ChangeDisplayNameRequest): Response<User>
 
     // --- 作品 (Work) 関連 ---
+    @POST("/v1/works")
+    suspend fun createWork(@Body request: CreateWorkRequest): Response<Work>
 
     @GET("v1/works")
     suspend fun getAllWorks(@Query("completed") completed: Boolean? = null): Response<List<Work>>

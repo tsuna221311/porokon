@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.screens
 
+import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -42,8 +43,26 @@ class PatternEditViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         when {
             workId != null -> loadPatternForEdit(workId)
             initialCsvContent != null -> {
-                val grid = initialCsvContent.lines().mapNotNull { if (it.isNotBlank()) it.split(",") else null }
-                _uiState.value = PatternEditUiState.Success(patternGrid = grid)
+                try {
+                    // Base64文字列をデコードして元のCSV文字列に戻す
+                    val decodedBytes = Base64.decode(initialCsvContent, Base64.NO_WRAP)
+                    val csvText = String(decodedBytes, Charsets.UTF_8)
+
+                    // デコードしたCSVテキストをグリッドに変換
+                    val grid = csvText.lines().mapNotNull { if (it.isNotBlank()) it.split(",") else null }
+
+                    // ★★★ ここから修正箇所 ★★★
+                    // グリッドの最初の2行を削除
+                    val cleanedGrid = grid.drop(2)
+
+                    // 2行削除した後のグリッドでUIの状態を更新
+                    _uiState.value = PatternEditUiState.Success(patternGrid = cleanedGrid)
+                    // ★★★ ここまで修正箇所 ★★★
+
+                } catch (e: Exception) {
+                    Log.e("PatternEditViewModel", "Failed to decode Base64 content", e)
+                    _uiState.value = PatternEditUiState.Error("不正なデータ形式です。")
+                }
             }
             else -> _uiState.value = PatternEditUiState.Error("必要な情報がありません。")
         }
@@ -151,4 +170,3 @@ class PatternEditViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         (_uiState.value as? PatternEditUiState.Success)?.let { _uiState.value = it.copy(canUndo = true) }
     }
 }
-

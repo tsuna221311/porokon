@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     // Plugin for Firebase services.
     id("com.google.gms.google-services")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // ★★★ 1. プラグインを追加 ★★★
+
 }
 
 android {
@@ -98,12 +100,15 @@ dependencies {
     // Firebase UI for easy authentication screens
     implementation("com.firebaseui:firebase-ui-auth:8.0.2")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
     // Networking (OkHttp & Retrofit) - Using BOM for version alignment
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.12.0"))
     implementation("com.squareup.okhttp3:okhttp")
     implementation("com.squareup.okhttp3:logging-interceptor")
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
 
 
     // Testing libraries

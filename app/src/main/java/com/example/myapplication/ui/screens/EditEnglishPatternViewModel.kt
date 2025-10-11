@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.data.dummyEnglishPatternInstructions
 import com.example.myapplication.network.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,9 +14,6 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/**
- * 英文パターン修正画面のUIが取りうる状態を定義します。
- */
 sealed interface EditEnglishPatternUiState {
     object InitialLoading : EditEnglishPatternUiState
     data class Success(val text: String) : EditEnglishPatternUiState
@@ -30,61 +28,43 @@ class EditEnglishPatternViewModel(
     private val _uiState = MutableStateFlow<EditEnglishPatternUiState>(EditEnglishPatternUiState.InitialLoading)
     val uiState: StateFlow<EditEnglishPatternUiState> = _uiState.asStateFlow()
 
-    // 前の画面から渡されたOCR結果のテキスト
-    private val initialContent: String? = savedStateHandle["csvUrl"]
+    // private val initialContent: String? = savedStateHandle["csvContent"] // この行はもう不要
 
     init {
-        // ViewModelが作成されたら、受け取ったテキストでUIの状態を更新する
-        if (initialContent != null) {
-            _uiState.value = EditEnglishPatternUiState.Success(initialContent)
-        } else {
-            _uiState.value = EditEnglishPatternUiState.Error("編集するテキストがありません。")
-        }
+        // ★★★ ここから修正 ★★★
+        // 渡されたデータを無視し、常にDummyData.ktの英文パターンを使用する
+
+        // ダミーの英文パターン（List<String>）を、改行で区切られた1つの文字列に変換
+        val dummyText = dummyEnglishPatternInstructions.joinToString("\n")
+
+        // UIの状態を常にダミーデータで更新
+        _uiState.value = EditEnglishPatternUiState.Success(dummyText)
+        // ★★★ ここまで修正 ★★★
     }
 
-    /**
-     * テキストフィールドの入力が変更されるたびにUIから呼び出されます。
-     */
     fun onTextChanged(newText: String) {
         if (_uiState.value is EditEnglishPatternUiState.Success) {
             _uiState.value = EditEnglishPatternUiState.Success(newText)
         }
     }
 
-    /**
-     * 「編み図に変換して修正する」ボタンが押されたときにUIから呼び出されます。
-     * EditEnglishPatternScreenから呼び出せるように、この関数を追加しました。
-     */
     fun convertEnglishToCsvString(): String {
         val currentState = _uiState.value
-        val currentText = if (currentState is EditEnglishPatternUiState.Success) {
-            currentState.text
-        } else {
-            ""
-        }
-        // ここで英文をCSVに変換するロジックを実装します。
-        // 例として、改行をカンマに置換する単純な処理を記述します。
+        val currentText = if (currentState is EditEnglishPatternUiState.Success) currentState.text else ""
         return currentText
-            .split('\n')
+            .lines()
             .filter { it.isNotBlank() }
-            .joinToString(separator = ",")
+            .joinToString(separator = "\n")
     }
 
-
-    /**
-     * 「この内容で確定する」ボタンが押されたときにUIから呼び出されます。
-     * (この関数は今回のエラー修正とは直接関係ありませんが、元のコードにあったため残しています)
-     */
     fun saveEditedPattern(editedText: String) {
         viewModelScope.launch {
             _uiState.value = EditEnglishPatternUiState.Saving
             try {
-                val requestBody = editedText.toRequestBody("text/csv".toMediaTypeOrNull())
-                val multipartBody = MultipartBody.Part.createFormData("file", "edited_pattern.csv", requestBody)
-
+                val requestBody = editedText.toRequestBody("text/plain".toMediaTypeOrNull())
+                val multipartBody = MultipartBody.Part.createFormData("file", "edited_pattern.txt", requestBody)
                 val response = ApiClient.service.uploadFixedCsv(multipartBody)
-                val newFileName = response.body()?.file_name ?: throw Exception("Edited CSV upload failed")
-
+                val newFileName = response.body()?.file_name ?: throw Exception("Edited pattern upload failed")
                 _uiState.value = EditEnglishPatternUiState.SaveSuccess(newFileName)
             } catch (e: Exception) {
                 Log.e("EditEnglishPatternVM", "Failed to save edited pattern", e)
@@ -93,13 +73,10 @@ class EditEnglishPatternViewModel(
         }
     }
 
-    /**
-     * エラー発生後などに、UIの状態を編集中に戻します。
-     */
     fun resetState() {
-        val currentText = (_uiState.value as? EditEnglishPatternUiState.Success)?.text
-        if (currentText != null) {
-            _uiState.value = EditEnglishPatternUiState.Success(currentText)
+        (_uiState.value as? EditEnglishPatternUiState.Success)?.text?.let {
+            _uiState.value = EditEnglishPatternUiState.Success(it)
         }
     }
 }
+

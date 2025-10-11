@@ -27,17 +27,15 @@ sealed class Screen(val route: String) {
     object ConfirmPhoto : Screen("confirm_photo/{isChart}/{photoUri}") {
         fun createRoute(isChart: Boolean, photoUri: String) = "confirm_photo/$isChart/$photoUri"
     }
-    object EditOcrResult : Screen("edit_ocr_result/{isChart}/{csvUrl}") {
-        fun createRoute(isChart: Boolean, csvUrl: String) = "edit_ocr_result/$isChart/$csvUrl"
+    object EditOcrResult : Screen("edit_ocr_result/{isChart}/{csvContent}") {
+        fun createRoute(isChart: Boolean, csvContent: String) = "edit_ocr_result/$isChart/$csvContent"
     }
     object SavePattern : Screen("save_pattern/{fileUrl}") {
         fun createRoute(fileUrl: String) = "save_pattern/$fileUrl"
     }
 
     // --- その他 ---
-    object EnglishPattern : Screen("english_pattern/{highlightedRow}") {
-        fun createRoute(highlightedRow: Int) = "english_pattern/$highlightedRow"
-    }
+    object EnglishPattern : Screen("english_pattern") // 引数なしに変更
     object PatternEdit : Screen("pattern_edit/{workId}") {
         fun createRoute(workId: Int) = "pattern_edit/$workId"
     }
@@ -54,7 +52,6 @@ fun AppNavigation(
             DashboardScreen(
                 navController = navController,
                 onMenuClick = onMenuClick,
-                // ★★★ 修正: 不足していたviewModelを渡す ★★★
                 dashboardViewModel = viewModel()
             )
         }
@@ -70,7 +67,8 @@ fun AppNavigation(
             route = Screen.PatternView.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
-            PatternDetailScreen(
+            // ★★★ ここを修正: PatternDetailScreen -> PatternViewScreen ★★★
+            PatternViewScreen(
                 navController = navController,
                 viewModel = viewModel()
             )
@@ -109,12 +107,11 @@ fun AppNavigation(
             route = Screen.EditOcrResult.route,
             arguments = listOf(
                 navArgument("isChart") { type = NavType.BoolType },
-                navArgument("csvUrl") { type = NavType.StringType }
+                navArgument("csvContent") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val isChart = backStackEntry.arguments?.getBoolean("isChart") ?: false
             if (isChart) {
-                // ★★★ 修正: 不要な 'isNewPattern' 引数を削除 ★★★
                 PatternEditScreen(navController = navController)
             } else {
                 EditEnglishPatternScreen(navController = navController)
@@ -125,14 +122,7 @@ fun AppNavigation(
             route = Screen.SavePattern.route,
             arguments = listOf(navArgument("fileUrl") { type = NavType.StringType })
         ) {
-            SavePatternScreen(
-                onSaveComplete = {
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Dashboard.route) { inclusive = true }
-                    }
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
+            SavePatternScreen(navController = navController)
         }
 
         // --- その他 (既存作品の編集) ---
@@ -140,15 +130,17 @@ fun AppNavigation(
             route = Screen.PatternEdit.route,
             arguments = listOf(navArgument("workId") { type = NavType.IntType })
         ) {
-            // ★★★ 修正: 不要な 'isNewPattern' 引数を削除 ★★★
             PatternEditScreen(navController = navController)
         }
 
         composable(
-            route = Screen.EnglishPattern.route,
-            arguments = listOf(navArgument("highlightedRow") { type = NavType.IntType })
+            route = Screen.EnglishPattern.route
+            // 引数なしになったのでargumentsは不要
         ) {
             EnglishPatternScreen(navController = navController)
         }
     }
 }
+
+
+
